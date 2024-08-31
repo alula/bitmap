@@ -1,0 +1,53 @@
+.style-mocha {
+	/* 
+    Lavender 	#b4befe 	rgb(180, 190, 254) 	hsl(232, 97%, 85%)
+    Text 	#cdd6f4 	rgb(205, 214, 244) 	hsl(226, 64%, 88%)
+	Subtext1 	#bac2de 	rgb(186, 194, 222) 	hsl(227, 35%, 80%)
+	Subtext0 	#a6adc8 	rgb(166, 173, 200) 	hsl(228, 24%, 72%)
+    Surface2 	#585b70 	rgb(88, 91, 112) 	hsl(233, 12%, 39%)
+	Surface1 	#45475a 	rgb(69, 71, 90) 	hsl(234, 13%, 31%)
+	Surface0 	#313244 	rgb(49, 50, 68) 	hsl(237, 16%, 23%)
+	Base 	#1e1e2e 	rgb(30, 30, 46) 	hsl(240, 21%, 15%)
+	Mantle 	#181825 	rgb(24, 24, 37) 	hsl(240, 21%, 12%)
+	Crust 	#11111b 	rgb(17, 17, 27) 	hsl(240, 23%, 9%) */
+
+	--background: #1e1e2e;
+	--secondary-1: #181825;
+	--secondary-2: #11111b;
+	--surface-0: #313244;
+	--surface-1: #45475a;
+	--surface-2: #585b70;
+	--text: #cdd6f4;
+	--subtext-1: #bac2de;
+	--subtext-0: #a6adc8;
+	--active: #b4befe;
+}
+
+.style-latte {
+	/*
+    Lavender 	#7287fd 	rgb(114, 135, 253) 	hsl(231, 97%, 72%)
+    Text 	#4c4f69 	rgb(76, 79, 105) 	hsl(234, 16%, 35%)
+	Subtext1 	#5c5f77 	rgb(92, 95, 119) 	hsl(233, 13%, 41%)
+	Subtext0 	#6c6f85 	rgb(108, 111, 133) 	hsl(233, 10%, 47%)
+	Overlay2 	#7c7f93 	rgb(124, 127, 147) 	hsl(232, 10%, 53%)
+	Overlay1 	#8c8fa1 	rgb(140, 143, 161) 	hsl(231, 10%, 59%)
+	Overlay0 	#9ca0b0 	rgb(156, 160, 176) 	hsl(228, 11%, 65%)
+	Surface2 	#acb0be 	rgb(172, 176, 190) 	hsl(227, 12%, 71%)
+	Surface1 	#bcc0cc 	rgb(188, 192, 204) 	hsl(225, 14%, 77%)
+	Surface0 	#ccd0da 	rgb(204, 208, 218) 	hsl(223, 16%, 83%)
+	Base 	#eff1f5 	rgb(239, 241, 245) 	hsl(220, 23%, 95%)
+	Mantle 	#e6e9ef 	rgb(230, 233, 239) 	hsl(220, 22%, 92%)
+	Crust 	#dce0e8 	rgb(220, 224, 232) 	hsl(220, 21%, 89%)
+    */
+
+	--background: #eff1f5;
+	--secondary-1: #e6e9ef;
+	--secondary-2: #dce0e8;
+	--surface-0: #ccd0da;
+	--surface-1: #bcc0cc;
+	--surface-2: #acb0be;
+	--text: #4c4f69;
+	--subtext-1: #5c5f77;
+	--subtext-0: #6c6f85;
+	--active: #7287fd;
+}
