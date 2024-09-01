@@ -39,7 +39,7 @@ class GoToCheckboxForm extends Component<GoToCheckboxFormProps, GoToCheckboxForm
 			this.props.client.goToCheckboxCallback(num);
 			this.props.close();
 		} else {
-			this.setState({ error: `Out of range. Must be between 0 and ${BITMAP_SIZE}` });
+			this.setState({ error: `Out of range. Must be between 0 and ${BITMAP_SIZE - 1}` });
 		}
 	}
 
