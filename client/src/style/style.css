@@ -435,7 +435,7 @@ a {
 
 @media (max-width: 768px) {
 	.checkbox-grid {
-		height: calc(100vh - 9rem);
+		height: calc(100svh - 10rem);
 	}
 
 	.header {
