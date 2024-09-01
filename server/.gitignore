@@ -16,3 +16,5 @@ target/
 
 # End of https://www.toptal.com/developers/gitignore/api/rust
 config.toml
+
+state.bin

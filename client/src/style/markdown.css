@@ -1,0 +1,44 @@
+#markdown {
+	margin: 0 auto;
+	max-width: 800px;
+}
+
+#markdown pre {
+	background-color: var(--secondary-1);
+	color: var(--text);
+	padding: 1rem;
+	border-radius: 0.5rem;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+#markdown pre code {
+	font-size: 0.9rem;
+}
+
+#markdown code {
+	background-color: var(--secondary-1);
+}
+
+.token.keyword {
+	color: var(--code-keyword);
+}
+
+.token.operator {
+	color: var(--code-operator);
+}
+
+.token.punctuation {
+	color: var(--code-punctuation);
+}
+
+.token.class-name {
+	color: var(--code-class-name);
+}
+
+.token.number {
+	color: var(--code-number);
+}
+
+.token.comment {
+	color: var(--code-comment);
+}

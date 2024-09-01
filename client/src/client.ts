@@ -1,15 +1,20 @@
 import { Bitmap } from "./bitmap";
 
-const PROTCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 1;
+export const CHUNK_SIZE = 64 * 64 * 64;
+export const CHUNK_SIZE_BYTES = CHUNK_SIZE / 8;
+export const CHUNK_COUNT = 64 * 64;
+export const BITMAP_SIZE = CHUNK_SIZE * CHUNK_COUNT;
+export const UPDATE_CHUNK_SIZE = 32;
 
 export const enum MessageType {
 	Hello = 0x0,
-	StatsRequest = 0x1,
-	StatsResponse = 0x2,
-	FullStateRequest = 0x10,
-	FullStateResponse = 0x11,
+	Stats = 0x1,
+	ChunkFullStateRequest = 0x10,
+	ChunkFullStateResponse = 0x11,
 	PartialStateUpdate = 0x12,
 	ToggleBit = 0x13,
+	PartialStateSubscription = 0x14,
 }
 
 export interface HelloMessage {
@@ -18,22 +23,19 @@ export interface HelloMessage {
 	versionMinor: number;
 }
 
-export interface StatsRequestMessage {
-	msg: MessageType.StatsRequest;
-}
-
-export interface StatsResponseMessage {
-	msg: MessageType.StatsResponse;
+export interface StatsMessage {
+	msg: MessageType.Stats;
 	currentClients: number;
 }
 
-export interface FullStateRequestMessage {
-	msg: MessageType.FullStateRequest;
+export interface ChunkFullStateRequestMessage {
+	msg: MessageType.ChunkFullStateRequest;
+	chunkIndex: number;
 }
 
-export interface FullStateResponseMessage {
-	msg: MessageType.FullStateResponse;
-	bitCount: number;
+export interface ChunkFullStateResponseMessage {
+	msg: MessageType.ChunkFullStateResponse;
+	chunkIndex: number;
 	bitmap: Uint8Array;
 }
 
@@ -48,24 +50,55 @@ export interface ToggleBitMessage {
 	index: number;
 }
 
-export type ClientMessage = StatsRequestMessage | FullStateRequestMessage | ToggleBitMessage;
-export type ServerMessage = HelloMessage | StatsResponseMessage | FullStateResponseMessage | PartialStateUpdateMessage;
+export interface PartialStateSubscriptionMessage {
+	msg: MessageType.PartialStateSubscription;
+	chunkIndex: number;
+}
+
+export type ClientMessage = ChunkFullStateRequestMessage | ToggleBitMessage | PartialStateSubscriptionMessage;
+export type ServerMessage = HelloMessage | StatsMessage | ChunkFullStateResponseMessage | PartialStateUpdateMessage;
 
 export type Message = ClientMessage | ServerMessage;
 
 export class BitmapClient {
-	websocket: WebSocket | null = null;
+	public bitmap: Bitmap;
+	public goToCheckboxCallback: (index: number) => void = () => {};
+	public highlightedIndex = -1;
 
-	constructor(public bitmap: Bitmap) {
+	private websocket: WebSocket | null = null;
+	currentChunkIndex = 0;
+	chunkLoaded = false;
+
+	constructor() {
+		this.bitmap = new Bitmap(CHUNK_SIZE);
 		this.openWebSocket();
 	}
 
-	public toggle(index: number) {
-		this.send({ msg: MessageType.ToggleBit, index });
-		this.bitmap.set(index, !this.bitmap.get(index));
+	public isChecked(globalIndex: number) {
+		const localIndex = globalIndex % CHUNK_SIZE;
+		return this.bitmap.get(localIndex);
+	}
+
+	public toggle(globalIndex: number) {
+		const localIndex = globalIndex % CHUNK_SIZE;
+		// console.log("Toggling", globalIndex);
+		this.send({ msg: MessageType.ToggleBit, index: globalIndex });
+		this.bitmap.set(localIndex, !this.bitmap.get(localIndex));
+	}
+
+	get chunkIndex() {
+		return this.currentChunkIndex;
+	}
+
+	public setChunkIndex(chunkIndex: number) {
+		this.currentChunkIndex = chunkIndex;
+		this.chunkLoaded = false;
+		this.send({ msg: MessageType.PartialStateSubscription, chunkIndex });
+		this.send({ msg: MessageType.ChunkFullStateRequest, chunkIndex });
 	}
 
 	private openWebSocket() {
+		console.log("Connecting to server");
 		if (this.websocket) {
 			this.websocket.close();
 		}
@@ -100,24 +133,35 @@ export class BitmapClient {
 	private onOpen() {}
 
 	private onMessage(msg: ServerMessage) {
-		console.log("Received message", msg);
+		// console.log("Received message", msg);
 
 		if (msg.msg === MessageType.Hello) {
-			if (msg.versionMajor !== PROTCOL_VERSION) {
+			if (msg.versionMajor !== PROTOCOL_VERSION) {
 				this.websocket?.close();
 				alert("Incompatible protocol version");
 			}
 
-			this.send({ msg: MessageType.StatsRequest });
-			this.send({ msg: MessageType.FullStateRequest });
-		} else if (msg.msg === MessageType.StatsResponse) {
-			console.log("Current clients:", (msg as StatsResponseMessage).currentClients);
-		} else if (msg.msg === MessageType.FullStateResponse) {
-			const fullState = msg as FullStateResponseMessage;
+			const chunkIndex = this.chunkIndex;
+
+			this.send({ msg: MessageType.PartialStateSubscription, chunkIndex });
+			this.send({ msg: MessageType.ChunkFullStateRequest, chunkIndex });
+		} else if (msg.msg === MessageType.Stats) {
+			console.log("Current clients:", (msg as StatsMessage).currentClients);
+		} else if (msg.msg === MessageType.ChunkFullStateResponse) {
+			const fullState = msg as ChunkFullStateResponseMessage;
+			if (fullState.chunkIndex !== this.chunkIndex) return;
+
 			this.bitmap.fullStateUpdate(fullState.bitmap);
+			this.chunkLoaded = true;
 		} else if (msg.msg === MessageType.PartialStateUpdate) {
 			const partialState = msg as PartialStateUpdateMessage;
-			this.bitmap.partialStateUpdate(partialState.offset, partialState.chunk);
+			// console.log("Partial state update", partialState);
+
+			const chunkIndex = Math.floor(partialState.offset / CHUNK_SIZE_BYTES);
+			if (chunkIndex !== this.chunkIndex) return;
+			const byteOffset = partialState.offset % CHUNK_SIZE_BYTES;
+
+			this.bitmap.partialStateUpdate(byteOffset, partialState.chunk);
 		}
 	}
 
@@ -132,15 +176,15 @@ export class BitmapClient {
 			const versionMinor = dataView.getUint16(3, true);
 
 			return { msg, versionMajor, versionMinor } as HelloMessage;
-		} else if (msg === MessageType.StatsResponse) {
+		} else if (msg === MessageType.Stats) {
 			const currentClients = dataView.getUint32(1, true);
 
-			return { msg, currentClients } as StatsResponseMessage;
-		} else if (msg === MessageType.FullStateResponse) {
-			const bitCount = dataView.getUint32(1, true);
-			const bitmap = payload.slice(5);
+			return { msg, currentClients } as StatsMessage;
+		} else if (msg === MessageType.ChunkFullStateResponse) {
+			const chunkIndex = dataView.getUint16(1, true);
+			const bitmap = payload.slice(3);
 
-			return { msg, bitCount, bitmap } as FullStateResponseMessage;
+			return { msg, chunkIndex, bitmap } as ChunkFullStateResponseMessage;
 		} else if (msg === MessageType.PartialStateUpdate) {
 			const offset = dataView.getUint32(1, true);
 			const chunk = payload.slice(5);
@@ -159,8 +203,13 @@ export class BitmapClient {
 	}
 
 	private serialize(msg: ClientMessage) {
-		if (msg.msg === MessageType.StatsRequest || msg.msg === MessageType.FullStateRequest) {
-			return new Uint8Array([msg.msg]);
+		if (msg.msg === MessageType.ChunkFullStateRequest || msg.msg === MessageType.PartialStateSubscription) {
+			const data = new Uint8Array(3);
+			data[0] = msg.msg;
+			const view = new DataView(data.buffer);
+			view.setUint16(1, msg.chunkIndex, true);
+
+			return data;
 		} else if (msg.msg === MessageType.ToggleBit) {
 			const data = new Uint8Array(5);
 			data[0] = msg.msg;

@@ -1,26 +1,31 @@
 use crate::{
-    bitmap::Bitmap,
+    bitmap::{Bitmap, Change},
     common::{PResult, STATE_PATH},
     config::Settings,
     protocol::{Message, MessageMut, MessageType, PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR},
 };
+use signal_hook::consts::{SIGINT, SIGQUIT};
+use signal_hook_tokio::Signals;
 use soketto::{
     handshake::{server::Response, Server},
     Data,
 };
 use std::{
     io,
-    net::{IpAddr, SocketAddr},
+    net::IpAddr,
     str::FromStr,
-    sync::{atomic::AtomicU32, Arc},
+    sync::{
+        atomic::{AtomicU32, AtomicU64, Ordering},
+        Arc,
+    },
 };
 use tokio::{
     net::TcpStream,
-    sync::{Mutex, RwLock},
+    sync::{broadcast, mpsc, Mutex, RwLock},
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::{wrappers::TcpListenerStream, StreamExt};
-use tokio_util::compat::TokioAsyncReadCompatExt;
+use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
 pub struct BitmapServer {
     ctx: Arc<SharedServerContext>,
@@ -30,6 +35,12 @@ struct SharedServerContext {
     settings: Settings,
     bitmap: RwLock<Bitmap>,
     client_count: AtomicU32,
+    client_id_counter: AtomicU64,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ClientTaskMessage {
+    Subscribe { chunk: u16 },
 }
 
 impl BitmapServer {
@@ -44,6 +55,7 @@ impl BitmapServer {
             settings,
             bitmap: RwLock::new(bitmap),
             client_count: AtomicU32::new(0),
+            client_id_counter: AtomicU64::new(0),
         });
 
         Box::new(Self { ctx })
@@ -56,6 +68,26 @@ impl BitmapServer {
         let mut join_set = JoinSet::new();
         join_set.spawn(async move { net_task.await });
         join_set.spawn(async move { bitmap_task.await });
+
+        let ctx = self.ctx.clone();
+        tokio::spawn(async move {
+            let mut signals = Signals::new(&[SIGINT, SIGQUIT]).unwrap();
+            let handle = signals.handle();
+
+            while let Some(signal) = signals.next().await {
+                log::info!("Quitting due to signal {}", signal);
+                break;
+            }
+
+            handle.close();
+
+            if let Err(e) = ctx.bitmap.write().await.save_to_file(STATE_PATH) {
+                log::error!("Failed to save image: {}", e);
+            }
+            log::info!("State saved.");
+
+            std::process::exit(0);
+        });
 
         while let Some(result) = join_set.join_next().await {
             result??;
@@ -82,14 +114,17 @@ impl BitmapServer {
         while let Some(socket) = incoming.next().await {
             let ctx = ctx.clone();
             tokio::spawn(async move {
-                ctx.client_count
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                let result = Self::client_task(socket, &ctx).await;
+                let client_id = ctx.client_id_counter.fetch_add(1, Ordering::Relaxed);
+                ctx.client_count.fetch_add(1, Ordering::Relaxed);
+
+                let result = Self::client_task(client_id, socket, &ctx).await;
                 if let Err(e) = result {
-                    log::error!("Client task error: {}", e);
+                    log::error!("[Client{}] Task error: {}", client_id, e);
                 }
-                ctx.client_count
-                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+
+                log::debug!("[Client{}] Task finished", client_id);
+
+                ctx.client_count.fetch_sub(1, Ordering::Relaxed);
             });
         }
 
@@ -97,6 +132,7 @@ impl BitmapServer {
     }
 
     async fn client_task(
+        client_id: u64,
         socket: io::Result<TcpStream>,
         ctx: &Arc<SharedServerContext>,
     ) -> PResult<()> {
@@ -109,42 +145,23 @@ impl BitmapServer {
             req.key()
         };
 
-        let ip = {
-            let mut header_buf = [httparse::EMPTY_HEADER; 32];
-            let mut request = httparse::Request::new(&mut header_buf);
-
-            let buffer = server.take_buffer();
-
-            match request.parse(buffer.as_ref()) {
-                Ok(httparse::Status::Complete(_)) => (),
-                _ => return Err(Box::new(BitmapError::InvalidHttp)),
-            };
-
-            let ip = Self::get_ip(
-                peer_addr.as_ref(),
-                if ctx.settings.parse_proxy_headers {
-                    Some(request.headers)
-                } else {
-                    None
-                },
-            );
-
-            server.set_buffer(buffer);
+        let ip = peer_addr.map(|addr| addr.ip());
+        let ip = if ctx.settings.parse_proxy_headers {
+            Self::get_ip_from_proxy_headers(&mut server)?.or(ip)
+        } else {
             ip
         };
 
         if let Some(ip) = ip {
-            log::info!("New connection from {}", ip);
+            log::info!("[Client{}] New connection from {}", client_id, ip);
         }
 
-        // Here we accept the client unconditionally.
         let accept = Response::Accept {
             key: websocket_key,
             protocol: None,
         };
         server.send_response(&accept).await?;
 
-        // And we can finally transition to a websocket connection.
         let (mut sender, mut receiver) = server.into_builder().finish();
 
         let mut send_data = Vec::new();
@@ -161,7 +178,7 @@ impl BitmapServer {
         }
 
         let sender = Arc::new(Mutex::new(sender));
-        let mut update_receiver = ctx.bitmap.read().await.subscribe();
+        let (ctm_sender, mut ctm_receiver) = mpsc::channel::<ClientTaskMessage>(8);
 
         let mut recv_task: JoinHandle<PResult<()>> = {
             let ctx = ctx.clone();
@@ -172,8 +189,14 @@ impl BitmapServer {
                 loop {
                     let data_type = receiver.receive_data(&mut recv_data).await?;
 
-                    BitmapServer::client_task_receive(&ctx, data_type, &recv_data, &mut send_data)
-                        .await?;
+                    BitmapServer::client_task_receive(
+                        &ctx,
+                        data_type,
+                        &recv_data,
+                        &mut send_data,
+                        &ctm_sender,
+                    )
+                    .await?;
 
                     if !send_data.is_empty() {
                         sender.lock().await.send_binary(&send_data).await?;
@@ -184,11 +207,27 @@ impl BitmapServer {
             })
         };
 
+        let mut update_receiver = None;
+
+        async fn cond_recv_update(
+            receiver: &mut Option<broadcast::Receiver<Change>>,
+        ) -> Option<Change> {
+            if let Some(receiver) = receiver {
+                receiver.recv().await.ok()
+            } else {
+                std::future::pending().await
+            }
+        }
+
         loop {
+            // log::info!("[Client{}] Client task loop", client_id);
             tokio::select! {
-                _ = &mut recv_task => {}
-                msg = update_receiver.recv() => {
-                    if let Ok(msg) = msg {
+                res = &mut recv_task => {
+					sender.lock().await.close().await?;
+                    return res?;
+                }
+                msg = cond_recv_update(&mut update_receiver) => {
+                    if let Some(msg) = msg {
                         let psu = MessageMut::create_message(MessageType::PartialStateUpdate, &mut send_data)?;
                         if let MessageMut::PartialStateUpdate(psu) = psu {
                             psu.offset = msg.byte_array_offset;
@@ -198,11 +237,15 @@ impl BitmapServer {
                         sender.lock().await.send_binary(&send_data).await?;
                     }
                 }
+                msg = ctm_receiver.recv() => {
+                    if let Some(ClientTaskMessage::Subscribe { chunk }) = msg {
+                        log::debug!("[Client{}] Received subscribe message for chunk {}", client_id, chunk);
+                        let mut bitmap = ctx.bitmap.write().await;
+                        update_receiver = Some(bitmap.subscribe(chunk as usize));
+                    }
+                }
             }
         }
-
-        // sender.close().await?;
-        // Ok(())
     }
 
     async fn client_task_receive(
@@ -210,6 +253,7 @@ impl BitmapServer {
         data_type: Data,
         recv_data: &Vec<u8>,
         send_data: &mut Vec<u8>,
+        ctm_sender: &mpsc::Sender<ClientTaskMessage>,
     ) -> PResult<()> {
         if !data_type.is_binary() {
             return Ok(());
@@ -223,22 +267,16 @@ impl BitmapServer {
         send_data.clear();
 
         match message {
-            Message::StatsRequest => {
-                log::info!("Received stats request");
-                let stats = MessageMut::create_message(MessageType::StatsResponse, send_data)?;
-                if let MessageMut::StatsResponse(stats) = stats {
-                    stats.current_clients =
-                        ctx.client_count.load(std::sync::atomic::Ordering::Relaxed);
-                }
-            }
-            Message::FullStateRequest => {
-                log::info!("Received full state request");
+            Message::ChunkFullStateRequest(msg) => {
                 let full_state =
-                    MessageMut::create_message(MessageType::FullStateResponse, send_data)?;
-                if let MessageMut::FullStateResponse(full_state) = full_state {
+                    MessageMut::create_message(MessageType::ChunkFullStateResponse, send_data)?;
+
+                if let MessageMut::ChunkFullStateResponse(full_state) = full_state {
                     let bitmap = ctx.bitmap.read().await;
-                    full_state.bit_count = bitmap.len() as _;
-                    full_state.bitmap.copy_from_slice(bitmap.as_raw_slice());
+                    full_state.chunk_index = msg.chunk_index;
+                    full_state
+                        .bitmap
+                        .copy_from_slice(bitmap.as_raw_slice(msg.chunk_index as usize));
                 }
             }
             Message::ToggleBit(msg) => {
@@ -246,31 +284,52 @@ impl BitmapServer {
                 log::info!("Received toggle bit: {}", idx);
                 ctx.bitmap.write().await.toggle(idx);
             }
+            Message::PartialStateSubscription(msg) => {
+                ctm_sender
+                    .send(ClientTaskMessage::Subscribe {
+                        chunk: msg.chunk_index,
+                    })
+                    .await?;
+            }
             _ => (),
         }
 
         Ok(())
     }
 
-    fn get_ip(
-        peer_addr: Option<&SocketAddr>,
-        headers: Option<&[httparse::Header<'_>]>,
-    ) -> Option<IpAddr> {
-        if let Some(headers) = headers {
-            for header in headers {
-                let value = if let Ok(value) = std::str::from_utf8(header.value) {
-                    value
-                } else {
-                    continue;
-                };
+    fn get_ip_from_proxy_headers(
+        server: &mut Server<'_, Compat<TcpStream>>,
+    ) -> PResult<Option<IpAddr>> {
+        let mut header_buf = [httparse::EMPTY_HEADER; 32];
+        let mut request = httparse::Request::new(&mut header_buf);
 
-                if let Some(ip) = Self::try_parse_header(header.name, value) {
-                    return Some(ip);
-                }
+        let buffer = server.take_buffer();
+
+        match request.parse(buffer.as_ref()) {
+            Ok(httparse::Status::Complete(_)) => (),
+            _ => return Err(Box::new(BitmapError::InvalidHttp)),
+        };
+
+        let ip = Self::parse_proxy_headers(request.headers);
+
+        server.set_buffer(buffer);
+        Ok(ip)
+    }
+
+    fn parse_proxy_headers(headers: &[httparse::Header<'_>]) -> Option<IpAddr> {
+        for header in headers {
+            let value = if let Ok(value) = std::str::from_utf8(header.value) {
+                value
+            } else {
+                continue;
+            };
+
+            if let Some(ip) = Self::try_parse_header(header.name, value) {
+                return Some(ip);
             }
         }
 
-        peer_addr.map(|addr| addr.ip())
+        None
     }
 
     fn try_parse_header(name: &str, value: &str) -> Option<IpAddr> {

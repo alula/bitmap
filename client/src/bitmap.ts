@@ -12,11 +12,13 @@ function countOnes(array: Uint8Array) {
 	return count;
 }
 
+type BitmapChangeCallback = (min: number, max: number) => void;
+
 export class Bitmap {
 	checkedCount = 0;
 
 	private bytes: Uint8Array;
-	private subscribers: Set<() => void> = new Set();
+	private subscribers: Set<BitmapChangeCallback> = new Set();
 
 	constructor(public bitCount: number) {
 		const byteCount = Math.ceil(bitCount / 8);
@@ -60,20 +62,20 @@ export class Bitmap {
 			this.bytes[byteIndex] = chunk[i];
 			this.checkedCount += bitCountLUT[chunk[i]];
 		}
-		this.fireChange();
+		this.fireChange(offset * 8, (offset + chunk.length) * 8);
 	}
 
-	fireChange() {
+	fireChange(rangeMin: number = 0, rangeMax: number = this.bitCount) {
 		for (const subscriber of this.subscribers) {
-			subscriber();
+			subscriber(rangeMin, rangeMax);
 		}
 	}
 
-	subscribeToChanges(callback: () => void) {
+	subscribeToChanges(callback: BitmapChangeCallback) {
 		this.subscribers.add(callback);
 	}
 
-	unsubscribeFromChanges(callback: () => void) {
+	unsubscribeFromChanges(callback: BitmapChangeCallback) {
 		this.subscribers.delete(callback);
 	}
 }

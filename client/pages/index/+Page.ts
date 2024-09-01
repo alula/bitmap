@@ -1,5 +1,9 @@
+import { renderApp } from "../../src/App";
+
+function renderHTML() {
+	return `
 <!doctype html>
-<html class="style-mocha">
+<html class="style-ctp-mocha">
 	<head>
 		<meta charset="UTF-8" />
 		<!-- <link rel="icon" type="image/svg+xml" href="favicon.svg" /> -->
@@ -9,6 +13,16 @@
 	</head>
 	<body>
 		<div id="app"></div>
-		<script type="module" src="/src/index.ts"></script>
 	</body>
 </html>
+`;
+}
+
+function renderClient() {
+	renderApp();
+}
+
+export default {
+	renderHTML,
+	renderClient,
+};
