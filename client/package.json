@@ -21,8 +21,14 @@
 		"inferno": "^8.2.3"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.25.2",
+		"@babel/generator": "^7.25.6",
+		"@babel/parser": "^7.25.6",
+		"@babel/plugin-transform-react-jsx": "^7.25.2",
+		"@babel/types": "^7",
 		"@eslint/js": "^9.9.1",
 		"@types/node": "^22.5.2",
+		"babel-plugin-inferno": "^6.7.2",
 		"eslint": "^9.9.1",
 		"globals": "^15.9.0",
 		"markdown-it": "^14.1.0",
@@ -32,7 +38,7 @@
 		"typescript-eslint": "^8.3.0",
 		"vike": "^0.4.193",
 		"vite": "^5.4.2",
-		"vite-plugin-inferno": "^0.0.1",
+		"vite-plugin-babel": "^1.2.0",
 		"vite-plugin-markdown": "^3.0.0-1"
 	}
 }
