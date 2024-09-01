@@ -14,7 +14,7 @@ interface CheckboxRowProps {
 	client: BitmapClient;
 }
 
-class CheckboxRow extends Component<CheckboxRowProps, {}> {
+class CheckboxRow extends Component<CheckboxRowProps> {
 	private checkboxRefs: Array<RefObject<HTMLInputElement>>;
 
 	constructor(props: CheckboxRowProps) {
@@ -248,10 +248,10 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 								key={virtualItem.index}
 							>
 								<CheckboxRow
+									{...props}
+									{...state}
 									index={virtualItem.index}
 									count={this.getCount(virtualItem.index * state.itemsPerRow)}
-									itemsPerRow={state.itemsPerRow}
-									client={props.client}
 								/>
 							</div>
 						);

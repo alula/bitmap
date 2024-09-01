@@ -66,8 +66,8 @@ interface ThemePickerState {
 	theme: string;
 }
 
-class ThemePicker extends Component<{}, ThemePickerState> {
-	constructor(props: {}) {
+class ThemePicker extends Component<object, ThemePickerState> {
+	constructor(props: object) {
 		super(props);
 
 		this.state = {
@@ -80,7 +80,7 @@ class ThemePicker extends Component<{}, ThemePickerState> {
 		this.setState({ theme });
 	}
 
-	render(_props: {}, state: ThemePickerState) {
+	render(_props: object, state: ThemePickerState) {
 		return (
 			<div className="flex gap-2">
 				<b>Theme:</b>

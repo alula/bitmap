@@ -9,10 +9,10 @@ interface AppState {
 	loading: boolean;
 }
 
-export class App extends Component<{}> {
+export class App extends Component<object> {
 	client: BitmapClient;
 
-	constructor(props: {}) {
+	constructor(props: object) {
 		super(props);
 
 		this.state = {
@@ -23,7 +23,7 @@ export class App extends Component<{}> {
 		this.client.loadingCallback = (loading: boolean) => this.setState({ loading });
 	}
 
-	render(_props: {}, { loading }: AppState) {
+	render(_props: object, { loading }: AppState) {
 		return (
 			<div>
 				<Header client={this.client} />
