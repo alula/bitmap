@@ -46,7 +46,7 @@ export default defineConfig({
 			filter: /\.[tj]sx?|html$/,
 		}),
 		vike({
-			prerender: false,
+			prerender: true,
 		}),
 	],
 });
