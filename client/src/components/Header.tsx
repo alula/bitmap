@@ -191,13 +191,15 @@ export class Header extends Component<HeaderProps> {
 						<div className="t1e3">1024³ (64⁵) checkboxes</div>
 					</div>
 
-					<button className="btn btn-primary" onClick={() => this.setOpen(true)}>
-						Menu
-					</button>
+					<div className="header-menu">
+						<button className="btn btn-primary" onClick={() => this.setOpen(true)}>
+							Menu
+						</button>
 
-					<span className="desktop-only">
-						{state.currentClients} {state.currentClients === 1 ? "person" : "people"} online
-					</span>
+						<span className="desktop-only">
+							{state.currentClients} {state.currentClients === 1 ? "person" : "people"} online
+						</span>
+					</div>
 
 					<div className={"header-page"}>
 						<span>

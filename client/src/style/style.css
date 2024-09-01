@@ -297,6 +297,14 @@ a {
 	width: 18rem;
 }
 
+.header-menu {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
 .overlay {
 	position: fixed;
 	top: 0;
