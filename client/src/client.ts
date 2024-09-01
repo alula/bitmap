@@ -63,6 +63,7 @@ export type Message = ClientMessage | ServerMessage;
 export class BitmapClient {
 	public bitmap: Bitmap;
 	public goToCheckboxCallback: (index: number) => void = () => {};
+	public loadingCallback: (loading: boolean) => void = () => {};
 	public highlightedIndex = -1;
 
 	private websocket: WebSocket | null = null;
@@ -93,6 +94,7 @@ export class BitmapClient {
 	public setChunkIndex(chunkIndex: number) {
 		this.currentChunkIndex = chunkIndex;
 		this.chunkLoaded = false;
+		this.loadingCallback(true);
 		this.send({ msg: MessageType.PartialStateSubscription, chunkIndex });
 		this.send({ msg: MessageType.ChunkFullStateRequest, chunkIndex });
 	}
@@ -153,6 +155,7 @@ export class BitmapClient {
 
 			this.bitmap.fullStateUpdate(fullState.bitmap);
 			this.chunkLoaded = true;
+			this.loadingCallback(false);
 		} else if (msg.msg === MessageType.PartialStateUpdate) {
 			const partialState = msg as PartialStateUpdateMessage;
 			// console.log("Partial state update", partialState);

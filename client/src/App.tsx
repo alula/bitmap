@@ -3,6 +3,11 @@ import { CheckboxGrid } from "./components/CheckboxGrid";
 import { BitmapClient } from "./client";
 import { Header } from "./components/Header";
 import { applyThemeFromStorage } from "./utils";
+import { LoadingSpinner } from "./components/Loading";
+
+interface AppState {
+	loading: boolean;
+}
 
 export class App extends Component<{}> {
 	client: BitmapClient;
@@ -10,14 +15,25 @@ export class App extends Component<{}> {
 	constructor(props: {}) {
 		super(props);
 
+		this.state = {
+			loading: true,
+		};
+
 		this.client = new BitmapClient();
+		this.client.loadingCallback = (loading: boolean) => this.setState({ loading });
 	}
 
-	render() {
+	render(_props: {}, { loading }: AppState) {
 		return (
 			<div>
 				<Header client={this.client} />
 				<CheckboxGrid client={this.client} />
+				{loading && (
+					<div className="loading-overlay" $HasVNodeChildren>
+						<LoadingSpinner />
+						<span>Connecting</span>
+					</div>
+				)}
 			</div>
 		);
 	}
