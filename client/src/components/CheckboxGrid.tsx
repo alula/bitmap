@@ -188,7 +188,7 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 		if (!this.ref.current) return;
 
 		const bitmap = this.props.client.bitmap;
-		const width = window.innerWidth;
+		const width = this.ref.current.clientWidth;
 		const itemsPerRow = Math.max(1, Math.floor(width / CHECKBOX_SIZE));
 
 		this.virtualizer.setOptions({
@@ -213,7 +213,7 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 				ref={this.ref}
 				className="checkbox-grid"
 				style={{
-					overflow: "auto",
+					"max-height": "100vh",
 				}}
 			>
 				<div
