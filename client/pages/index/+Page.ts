@@ -1,4 +1,5 @@
 import { renderApp } from "../../src/App";
+import "../../src/style/style.css";
 
 function renderHTML() {
 	return `
@@ -9,7 +10,6 @@ function renderHTML() {
 		<!-- <link rel="icon" type="image/svg+xml" href="favicon.svg" /> -->
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Bitmap</title>
-		<link rel="stylesheet" href="/src/style/style.css" />
 	</head>
 	<body>
 		<div id="app"></div>

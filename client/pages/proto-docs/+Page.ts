@@ -2,6 +2,8 @@
 import { html } from "../../../PROTOCOL.md";
 
 import { applyThemeFromStorage } from "../../src/utils";
+import "../../src/style/style.css";
+import "../../src/style/markdown.css";
 
 function renderHTML() {
 	return `
@@ -12,8 +14,6 @@ function renderHTML() {
 		<!-- <link rel="icon" type="image/svg+xml" href="favicon.svg" /> -->
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Protocol Documentation</title>
-		<link rel="stylesheet" href="/src/style/style.css" />
-		<link rel="stylesheet" href="/src/style/markdown.css" />
 	</head>
 	<body>
 		<div id="markdown">

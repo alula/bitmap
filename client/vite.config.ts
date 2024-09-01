@@ -17,6 +17,8 @@ export default defineConfig({
 		}),
 		// @ts-ignore
 		inferno(),
-		vike(),
+		vike({
+			prerender: true,
+		}),
 	],
 });
