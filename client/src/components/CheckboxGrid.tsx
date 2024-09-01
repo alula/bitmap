@@ -194,8 +194,6 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 		const checkboxSize = Math.max(Math.floor(width / 60), 21);
 		const itemsPerRow = Math.max(1, Math.floor(width / checkboxSize));
 
-		console.log("items per row", itemsPerRow);
-
 		this.virtualizer.setOptions({
 			...this.virtualizer.options,
 			estimateSize: () => checkboxSize,
