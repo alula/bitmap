@@ -251,21 +251,7 @@ a {
 	right: 0;
 	overflow: auto;
 	overflow-x: hidden;
-}
-
-.checkbox-grid::-webkit-scrollbar {
-	width: 16px;
-}
-
-.checkbox-grid::-webkit-scrollbar-thumb {
-	background-color: #ffffff30;
-	border-radius: 4px;
-	border: none;
-}
-
-.checkbox-grid::-webkit-scrollbar-track-piece:start,
-.checkbox-grid::-webkit-scrollbar-track-piece:end {
-	background-color: transparent;
+	overflow-y: overlay;
 }
 
 .header {
