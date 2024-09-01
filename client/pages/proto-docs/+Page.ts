@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error broken md plugin
 import { html } from "../../../PROTOCOL.md";
 
 import { applyThemeFromStorage } from "../../src/utils";
