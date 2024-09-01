@@ -43,6 +43,7 @@ struct SharedServerContext {
 #[derive(Debug, Clone, Copy)]
 enum ClientTaskMessage {
     Subscribe { chunk: u16 },
+    SendStats,
 }
 
 impl BitmapServer {
@@ -203,6 +204,7 @@ impl BitmapServer {
         let mut recv_task: JoinHandle<PResult<()>> = {
             let ctx = ctx.clone();
             let sender = sender.clone();
+            let ctm_sender = ctm_sender.clone();
             tokio::spawn(async move {
                 let mut send_data = Vec::new();
 
@@ -227,6 +229,16 @@ impl BitmapServer {
             })
         };
 
+        let mut stats_task: JoinHandle<PResult<()>> = {
+            let ctm_sender = ctm_sender.clone();
+            tokio::spawn(async move {
+                loop {
+                    ctm_sender.send(ClientTaskMessage::SendStats).await?;
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                }
+            })
+        };
+
         let mut update_receiver = None;
 
         async fn cond_recv_update(
@@ -246,6 +258,9 @@ impl BitmapServer {
                     sender.lock().await.close().await?;
                     return res?;
                 }
+                res = &mut stats_task => {
+                    return res?;
+                }
                 msg = cond_recv_update(&mut update_receiver) => {
                     if let Some(msg) = msg {
                         let psu = MessageMut::create_message(MessageType::PartialStateUpdate, &mut send_data)?;
@@ -262,6 +277,14 @@ impl BitmapServer {
                         log::debug!("[Client{}] Received subscribe message for chunk {}", client_id, chunk);
                         let mut bitmap = ctx.bitmap.write().await;
                         update_receiver = Some(bitmap.subscribe(chunk as usize));
+                    } else if let Some(ClientTaskMessage::SendStats) = msg {
+						log::debug!("[Client{}] Received send stats message", client_id);
+                        let stats = MessageMut::create_message(MessageType::Stats, &mut send_data)?;
+                        if let MessageMut::Stats(stats) = stats {
+                            stats.current_clients = ctx.metrics.clients.load(Ordering::Relaxed);
+                        }
+
+                        sender.lock().await.send_binary(&send_data).await?;
                     }
                 }
             }
@@ -430,6 +453,7 @@ impl std::error::Error for BitmapError {}
 /// Server statistics
 #[derive(Serialize, Deserialize, Default)]
 struct Metrics {
+	#[serde(skip)]
     // Number of clients connected
     clients: AtomicU32,
     // Peak number of clients connected at the same time
