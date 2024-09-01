@@ -25,7 +25,7 @@ export class App extends Component<{}> {
 
 	render(_props: {}, { loading }: AppState) {
 		return (
-			<div>
+			<main>
 				<Header client={this.client} />
 				<CheckboxGrid client={this.client} />
 				{loading && (
@@ -34,7 +34,7 @@ export class App extends Component<{}> {
 						<span>Connecting</span>
 					</div>
 				)}
-			</div>
+			</main>
 		);
 	}
 }
