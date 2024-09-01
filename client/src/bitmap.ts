@@ -17,7 +17,7 @@ type BitmapChangeCallback = (min: number, max: number) => void;
 export class Bitmap {
 	checkedCount = 0;
 
-	private bytes: Uint8Array;
+	public bytes: Uint8Array;
 	private subscribers: Set<BitmapChangeCallback> = new Set();
 
 	constructor(public bitCount: number) {

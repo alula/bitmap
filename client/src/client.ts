@@ -101,6 +101,10 @@ export class BitmapClient {
 		this.send({ msg: MessageType.ChunkFullStateRequest, chunkIndex });
 	}
 
+	public getUint8Array() {
+		return this.bitmap.bytes;
+	}
+
 	private openWebSocket() {
 		console.log("Connecting to server");
 		if (this.websocket) {

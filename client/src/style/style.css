@@ -41,6 +41,15 @@ a {
 	text-decoration: underline;
 }
 
+.secret {
+	opacity: 0;
+	transition: opacity 0.5s;
+}
+
+.secret:hover {
+	opacity: 1;
+}
+
 main {
 	display: flex;
 	flex-direction: column;

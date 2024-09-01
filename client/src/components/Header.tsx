@@ -1,6 +1,6 @@
 import { Component, FormEvent } from "inferno";
 import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
-import { applyTheme, getCurrentTheme, themes } from "../utils";
+import { applyTheme, getCurrentTheme, themes, isDebug, setDebug, downloadUint8Array } from "../utils";
 import { Spinner } from "./Spinner";
 
 function dummy() {}
@@ -82,7 +82,7 @@ class ThemePicker extends Component<object, ThemePickerState> {
 
 	render(_props: object, state: ThemePickerState) {
 		return (
-			<div className="flex gap-2">
+			<div className="flex gap-2 mb-2">
 				<b>Theme:</b>
 				<select
 					className="select"
@@ -104,8 +104,32 @@ interface OverlayProps {
 	close: () => void;
 }
 
-class Overlay extends Component<OverlayProps> {
-	render(props: OverlayProps) {
+interface OverlayState {
+	debug: boolean;
+}
+
+class Overlay extends Component<OverlayProps, OverlayState> {
+	constructor(props: OverlayProps) {
+		super(props);
+
+		this.state = {
+			debug: isDebug(),
+		};
+	}
+
+	toggleDebug(): void {
+		const debug = !this.state!.debug;
+		this.setState({ debug });
+		setDebug(debug);
+	}
+
+	downloadPage(): void {
+		const data = this.props.client.getUint8Array();
+		const filename = `state-${this.props.client.chunkIndex}.bin`;
+		downloadUint8Array(data, filename);
+	}
+
+	render(props: OverlayProps, state: OverlayState) {
 		return (
 			<div className="overlay" onClick={props.close}>
 				<div className="overlay-content" onClick={(e) => e.stopPropagation()}>
@@ -131,7 +155,21 @@ class Overlay extends Component<OverlayProps> {
 						<a href="https://github.com/alula/bitmap">Source code</a>
 						{" | "}
 						<a href="/proto-docs">Protocol documentation</a>
+						<span className="secret">
+							{" | "}
+							<a href="#" onClick={() => this.toggleDebug()}>
+								toggle debug
+							</a>
+						</span>
 					</p>
+
+					{state.debug && (
+						<div>
+							<button className="btn" onClick={() => this.downloadPage()}>
+								Download page
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 		);
