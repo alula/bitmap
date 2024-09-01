@@ -103,7 +103,7 @@ export class BitmapClient {
 			this.websocket.close();
 		}
 
-		const ws = new WebSocket("ws://localhost:2253");
+		const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL);
 		ws.binaryType = "arraybuffer";
 		this.websocket = ws;
 
