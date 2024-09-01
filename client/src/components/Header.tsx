@@ -3,6 +3,8 @@ import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
 import { applyTheme, getCurrentTheme, themes } from "../utils";
 import { Spinner } from "./Spinner";
 
+function dummy() {}
+
 interface GoToCheckboxFormProps {
 	client: BitmapClient;
 	close: () => void;
@@ -41,7 +43,7 @@ class GoToCheckboxForm extends Component<GoToCheckboxFormProps, GoToCheckboxForm
 		}
 	}
 
-	render(props: GoToCheckboxFormProps, state: GoToCheckboxFormState) {
+	render(_props: GoToCheckboxFormProps, state: GoToCheckboxFormState) {
 		return (
 			<>
 				<div className="flex gap-2 ai-center mb-2">
@@ -142,6 +144,7 @@ interface HeaderProps {
 
 interface HeaderState {
 	menuOpen: boolean;
+	currentClients: number;
 }
 
 export class Header extends Component<HeaderProps> {
@@ -150,7 +153,18 @@ export class Header extends Component<HeaderProps> {
 
 		this.state = {
 			menuOpen: false,
+			currentClients: props.client.currentClients,
 		};
+	}
+
+	componentDidMount(): void {
+		this.props.client.currentClientsCallback = (currentClients: number) => {
+			this.setState({ currentClients });
+		};
+	}
+
+	componentWillUnmount(): void {
+		this.props.client.currentClientsCallback = dummy;
 	}
 
 	onPageChange(value: number): void {
@@ -180,6 +194,10 @@ export class Header extends Component<HeaderProps> {
 					<button className="btn btn-primary" onClick={() => this.setOpen(true)}>
 						Menu
 					</button>
+
+					<span className="desktop-only">
+						{state.currentClients} {state.currentClients === 1 ? "person" : "people"} online
+					</span>
 
 					<div className={"header-page"}>
 						<span>

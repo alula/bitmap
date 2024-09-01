@@ -281,8 +281,6 @@ a {
 }
 
 .header .title {
-	display: flex;
-
 	line-height: 1;
 	font-size: 2rem;
 	font-weight: 800;
@@ -395,6 +393,10 @@ a {
 	flex-shrink: 1;
 }
 
+.flex-column {
+	flex-direction: column;
+}
+
 .ai-center {
 	align-items: center;
 }
@@ -437,6 +439,7 @@ a {
 
 	.header .title {
 		font-size: 1.4rem;
+		text-align: start;
 	}
 
 	.header .title .t1e3 {
@@ -449,6 +452,10 @@ a {
 
 	.loading-overlay {
 		top: 9rem;
+	}
+
+	.desktop-only {
+		display: none;
 	}
 }
 

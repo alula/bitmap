@@ -64,10 +64,12 @@ export class BitmapClient {
 	public bitmap: Bitmap;
 	public goToCheckboxCallback: (index: number) => void = () => {};
 	public loadingCallback: (loading: boolean) => void = () => {};
+	public currentClientsCallback: (currentClients: number) => void = () => {};
 	public highlightedIndex = -1;
 
 	private websocket: WebSocket | null = null;
 	currentChunkIndex = 0;
+	currentClients = 1;
 	chunkLoaded = false;
 
 	constructor() {
@@ -148,7 +150,10 @@ export class BitmapClient {
 			this.send({ msg: MessageType.PartialStateSubscription, chunkIndex });
 			this.send({ msg: MessageType.ChunkFullStateRequest, chunkIndex });
 		} else if (msg.msg === MessageType.Stats) {
-			console.log("Current clients:", (msg as StatsMessage).currentClients);
+			const stats = msg as StatsMessage;
+			console.log("Current clients", stats.currentClients);
+			this.currentClients = stats.currentClients;
+			this.currentClientsCallback(this.currentClients);
 		} else if (msg.msg === MessageType.ChunkFullStateResponse) {
 			const fullState = msg as ChunkFullStateResponseMessage;
 			if (fullState.chunkIndex !== this.chunkIndex) return;
