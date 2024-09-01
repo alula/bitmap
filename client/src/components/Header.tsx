@@ -184,8 +184,8 @@ export class Header extends Component<HeaderProps> {
 		const end = start + CHUNK_SIZE;
 
 		return (
-			<>
-				<div className="header">
+			<div className="header">
+				<div className="header-inner">
 					<div className="title">
 						<div className="t1b">1 billion checkboxes</div>
 						<div className="t1e3">1024³ (64⁵) checkboxes</div>
@@ -217,7 +217,7 @@ export class Header extends Component<HeaderProps> {
 					</div>
 				</div>
 				{state.menuOpen && <Overlay client={props.client} close={() => this.setOpen(false)} />}
-			</>
+			</div>
 		);
 	}
 }

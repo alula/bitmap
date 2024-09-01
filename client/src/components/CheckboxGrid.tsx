@@ -2,8 +2,7 @@ import { elementScroll, observeElementOffset, observeElementRect, Virtualizer } 
 import { Component, createRef, InfernoNode, RefObject } from "inferno";
 import { BitmapClient, CHUNK_SIZE } from "../client";
 
-const CHECKBOX_SIZE = 32;
-const size = `${CHECKBOX_SIZE}px`;
+const CHECKBOX_SIZE = 30;
 
 function dummy() {}
 
@@ -11,6 +10,7 @@ interface CheckboxRowProps {
 	index: number;
 	count: number;
 	itemsPerRow: number;
+	checkboxSize: number;
 	client: BitmapClient;
 }
 
@@ -25,7 +25,11 @@ class CheckboxRow extends Component<CheckboxRowProps, {}> {
 	}
 
 	componentWillReceiveProps(nextProps: CheckboxRowProps): void {
-		if (this.props.count !== nextProps.count || this.props.index !== nextProps.index) {
+		if (
+			this.props.count !== nextProps.count ||
+			this.props.index !== nextProps.index ||
+			this.props.checkboxSize !== nextProps.checkboxSize
+		) {
 			this.checkboxRefs = [...Array(nextProps.count)].map(() => createRef());
 			this.forceUpdate();
 		}
@@ -70,20 +74,14 @@ class CheckboxRow extends Component<CheckboxRowProps, {}> {
 				className="checkbox-row"
 				style={{
 					display: "flex",
-					width: `${props.itemsPerRow * CHECKBOX_SIZE}px`,
+					width: `${props.itemsPerRow}em`,
 				}}
 				$HasNonKeyedChildren
 			>
 				{[...Array(props.count)].map((_, i) => {
 					const idx = baseIdx + i;
 					return (
-						<div
-							className="checkbox"
-							style={{
-								width: size,
-								height: size,
-							}}
-						>
+						<div className="checkbox">
 							<input
 								type="checkbox"
 								className={props.client.highlightedIndex === idx ? "highlighted" : undefined}
@@ -110,6 +108,7 @@ interface CheckboxGridProps {
 
 interface CheckboxGridState {
 	itemsPerRow: number;
+	checkboxSize: number;
 }
 
 export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState> {
@@ -125,11 +124,12 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 		// this.itemsPerRow = 20;
 		this.state = {
 			itemsPerRow: Math.floor(window.innerWidth / CHECKBOX_SIZE),
+			checkboxSize: CHECKBOX_SIZE,
 		};
 		this.virtualizer = new Virtualizer({
 			count: Math.ceil(props.client.bitmap.bitCount / this.state.itemsPerRow),
 			overscan: 10,
-			estimateSize: () => CHECKBOX_SIZE,
+			estimateSize: () => this.state!.checkboxSize,
 			getScrollElement: () => this.ref.current,
 			observeElementOffset,
 			observeElementRect,
@@ -185,20 +185,29 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 	}
 
 	updateSize(): void {
-		if (!this.ref.current) return;
+		const element = this.ref.current;
+		if (!element) return;
 
 		const bitmap = this.props.client.bitmap;
-		const width = this.ref.current.clientWidth;
-		const itemsPerRow = Math.max(1, Math.floor(width / CHECKBOX_SIZE));
+		const width = element.clientWidth;
+
+		const checkboxSize = Math.max(Math.floor(width / 60), 22);
+		const itemsPerRow = Math.max(1, Math.floor(width / checkboxSize));
+
+		console.log("items per row", itemsPerRow);
 
 		this.virtualizer.setOptions({
 			...this.virtualizer.options,
+			estimateSize: () => checkboxSize,
 			count: Math.ceil(bitmap.bitCount / itemsPerRow),
 		});
 
 		this.setState({
+			checkboxSize: checkboxSize,
 			itemsPerRow: itemsPerRow,
 		});
+
+		this.virtualizer.resizeItem(0, checkboxSize);
 	}
 
 	getCount(index: number): number {
@@ -221,6 +230,7 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 						height: `${this.virtualizer.getTotalSize()}px`,
 						width: "100%",
 						position: "relative",
+						"font-size": `${state.checkboxSize}px`,
 					}}
 					$HasKeyedChildren
 				>
