@@ -216,13 +216,7 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 
 	render(props: CheckboxGridProps, state: CheckboxGridState) {
 		return (
-			<div
-				ref={this.ref}
-				className="checkbox-grid"
-				style={{
-					"max-height": "100vh",
-				}}
-			>
+			<div ref={this.ref} className="checkbox-grid">
 				<div
 					style={{
 						height: `${this.virtualizer.getTotalSize()}px`,
