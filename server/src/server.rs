@@ -1,9 +1,11 @@
 use crate::{
     bitmap::{Bitmap, Change},
-    common::{PResult, STATE_PATH},
+    common::{PResult, METRICS_PATH, STATE_PATH},
     config::Settings,
     protocol::{Message, MessageMut, MessageType, PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR},
 };
+use futures_util::AsyncWriteExt;
+use serde::{Deserialize, Serialize};
 use signal_hook::consts::{SIGINT, SIGQUIT};
 use signal_hook_tokio::Signals;
 use soketto::{
@@ -34,7 +36,7 @@ pub struct BitmapServer {
 struct SharedServerContext {
     settings: Settings,
     bitmap: RwLock<Bitmap>,
-    client_count: AtomicU32,
+    metrics: Arc<Metrics>,
     client_id_counter: AtomicU64,
 }
 
@@ -51,10 +53,17 @@ impl BitmapServer {
             Err(e) => log::warn!("Failed to load bitmap state from file: {}", e),
         }
 
+        let metrics = match Metrics::load_from_file(METRICS_PATH) {
+            Ok(m) => Arc::new(m),
+            Err(_) => Arc::new(Metrics::default()),
+        };
+
+        metrics.set_checked_bits(bitmap.count_ones() as u32);
+
         let ctx = Arc::new(SharedServerContext {
             settings,
             bitmap: RwLock::new(bitmap),
-            client_count: AtomicU32::new(0),
+            metrics,
             client_id_counter: AtomicU64::new(0),
         });
 
@@ -81,8 +90,13 @@ impl BitmapServer {
 
             handle.close();
 
+            if let Err(e) = ctx.metrics.save_to_file(METRICS_PATH) {
+                log::error!("Failed to save metrics: {}", e);
+            }
+            log::info!("Metrics saved.");
+
             if let Err(e) = ctx.bitmap.write().await.save_to_file(STATE_PATH) {
-                log::error!("Failed to save image: {}", e);
+                log::error!("Failed to save state: {}", e);
             }
             log::info!("State saved.");
 
@@ -115,7 +129,7 @@ impl BitmapServer {
             let ctx = ctx.clone();
             tokio::spawn(async move {
                 let client_id = ctx.client_id_counter.fetch_add(1, Ordering::Relaxed);
-                ctx.client_count.fetch_add(1, Ordering::Relaxed);
+                ctx.metrics.inc_clients();
 
                 let result = Self::client_task(client_id, socket, &ctx).await;
                 if let Err(e) = result {
@@ -124,7 +138,7 @@ impl BitmapServer {
 
                 log::debug!("[Client{}] Task finished", client_id);
 
-                ctx.client_count.fetch_sub(1, Ordering::Relaxed);
+                ctx.metrics.dec_clients();
             });
         }
 
@@ -141,7 +155,13 @@ impl BitmapServer {
         let mut server = Server::new(socket.compat());
 
         let websocket_key = {
-            let req = server.receive_request().await?;
+            let req = server.receive_request().await;
+            let req = match req {
+                Ok(req) => req,
+                Err(_) => {
+                    return Self::try_handle_as_http(ctx, server).await;
+                }
+            };
             req.key()
         };
 
@@ -223,7 +243,7 @@ impl BitmapServer {
             // log::info!("[Client{}] Client task loop", client_id);
             tokio::select! {
                 res = &mut recv_task => {
-					sender.lock().await.close().await?;
+                    sender.lock().await.close().await?;
                     return res?;
                 }
                 msg = cond_recv_update(&mut update_receiver) => {
@@ -282,7 +302,9 @@ impl BitmapServer {
             Message::ToggleBit(msg) => {
                 let idx = msg.index as usize;
                 log::info!("Received toggle bit: {}", idx);
-                ctx.bitmap.write().await.toggle(idx);
+                let addend = ctx.bitmap.write().await.toggle(idx);
+                ctx.metrics.inc_checked_bits(addend as i32);
+                ctx.metrics.inc_bit_toggles();
             }
             Message::PartialStateSubscription(msg) => {
                 ctm_sender
@@ -293,6 +315,50 @@ impl BitmapServer {
             }
             _ => (),
         }
+
+        Ok(())
+    }
+
+    async fn try_handle_as_http(
+        ctx: &Arc<SharedServerContext>,
+        mut server: Server<'_, Compat<TcpStream>>,
+    ) -> PResult<()> {
+        let mut header_buf = [httparse::EMPTY_HEADER; 32];
+        let mut request = httparse::Request::new(&mut header_buf);
+
+        let buffer = server.take_buffer();
+
+        match request.parse(buffer.as_ref()) {
+            Ok(httparse::Status::Complete(_)) => (),
+            _ => return Err(Box::new(BitmapError::InvalidHttp)),
+        };
+
+        let mut stream = server.into_inner();
+
+        if let Some("GET") = request.method {
+            if let Some("/metrics") = request.path {
+                let metrics = ctx.metrics.to_prometheus();
+
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\n\
+					Content-Type: text/plain; version=0.0.4\r\n\
+					Content-Length: {}\r\n\
+					Connection: close\r\n\
+					\r\n\
+					{}",
+                    metrics.len(),
+                    metrics
+                );
+
+                stream.write_all(response.as_bytes()).await?;
+            } else {
+                let response = "HTTP/1.1 404 Not Found\r\n\r\nNot found";
+                stream.write_all(response.as_bytes()).await?;
+            }
+        }
+
+        // let response = Self::handle_http_request(request.method, request.path);
+        // server.send_response(&response).await?;
 
         Ok(())
     }
@@ -360,3 +426,73 @@ impl std::fmt::Display for BitmapError {
 }
 
 impl std::error::Error for BitmapError {}
+
+/// Server statistics
+#[derive(Serialize, Deserialize, Default)]
+struct Metrics {
+    // Number of clients connected
+    clients: AtomicU32,
+    // Peak number of clients connected at the same time
+    peak_clients: AtomicU32,
+    // Number of currently checked bits
+    checked_bits: AtomicU32,
+    // Number of bit toggles
+    bit_toggles: AtomicU64,
+}
+
+impl Metrics {
+    pub fn save_to_file(&self, path: &str) -> std::io::Result<()> {
+        let data = serde_json::to_string(self)?;
+        std::fs::write(path, data)?;
+        Ok(())
+    }
+
+    pub fn load_from_file(path: &str) -> std::io::Result<Self> {
+        let data = std::fs::read_to_string(path)?;
+        let stats = serde_json::from_str(&data)?;
+        Ok(stats)
+    }
+
+    pub fn inc_clients(&self) {
+        let clients = self.clients.fetch_add(1, Ordering::Relaxed) + 1;
+        self.peak_clients.fetch_max(clients, Ordering::Relaxed);
+    }
+
+    pub fn dec_clients(&self) {
+        self.clients.fetch_sub(1, Ordering::Relaxed);
+    }
+
+    pub fn set_checked_bits(&self, value: u32) {
+        self.checked_bits.store(value, Ordering::Relaxed);
+    }
+
+    pub fn inc_checked_bits(&self, amount: i32) {
+        self.checked_bits
+            .fetch_add(amount as u32, Ordering::Relaxed);
+    }
+
+    pub fn inc_bit_toggles(&self) {
+        self.bit_toggles.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn to_prometheus(&self) -> String {
+        format!(
+            "# TYPE bitmap_clients gauge\n\
+            # HELP bitmap_clients Number of clients connected\n\
+            bitmap_clients {}\n\
+            # TYPE bitmap_peak_clients counter\n\
+            # HELP bitmap_peak_clients Peak number of clients connected at the same time\n\
+            bitmap_peak_clients {}\n\
+            # TYPE bitmap_checked_bits gauge\n\
+            # HELP bitmap_checked_bits Number of currently checked bits\n\
+            bitmap_checked_bits {}\n\
+            # TYPE bitmap_bit_toggles counter\n\
+            # HELP bitmap_bit_toggles Number of bit toggles\n\
+            bitmap_bit_toggles {}\n",
+            self.clients.load(Ordering::Relaxed),
+            self.peak_clients.load(Ordering::Relaxed),
+            self.checked_bits.load(Ordering::Relaxed),
+            self.bit_toggles.load(Ordering::Relaxed),
+        )
+    }
+}

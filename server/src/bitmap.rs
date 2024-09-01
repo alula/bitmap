@@ -67,6 +67,14 @@ impl Bitmap {
         Ok(())
     }
 
+    pub fn count_ones(&self) -> usize {
+        let mut count = 0;
+        for chunk in self.data.iter() {
+            count += chunk.count_ones();
+        }
+        count
+    }
+
     pub fn periodic_send_changes(&mut self) {
         self.change_tracker.send_changes(&self.data);
         self.change_tracker.clear();
@@ -85,8 +93,15 @@ impl Bitmap {
         self.change_tracker.mark_bit_changed(index);
     }
 
-    pub fn toggle(&mut self, index: usize) {
-        self.set(index, !self.get(index));
+    pub fn toggle(&mut self, index: usize) -> i32 {
+        let curr = self.get(index);
+        self.set(index, !curr);
+
+        if curr {
+            -1
+        } else {
+            1
+        }
     }
 
     pub fn get(&self, index: usize) -> bool {
@@ -206,7 +221,7 @@ impl ChangeTracker {
             let chunk_data = if let Ok(chunk_data) = chunk_data {
                 chunk_data
             } else {
-				debug_assert!(false, "Failed to convert slice to array");
+                debug_assert!(false, "Failed to convert slice to array");
                 break;
             };
 

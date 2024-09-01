@@ -18,3 +18,4 @@ target/
 config.toml
 
 state.bin
+metrics.json
