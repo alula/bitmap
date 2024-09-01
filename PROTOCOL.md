@@ -96,7 +96,7 @@ version and disconnect if it's not supported.
 
 ```c
 struct StatsMessage {
-	MessageType type = 0x02;
+	MessageType type = 0x01;
 	// Number of connected clients
 	uint32_t currentClients;
 	// Reserved for future use
