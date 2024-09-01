@@ -191,7 +191,7 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 		const bitmap = this.props.client.bitmap;
 		const width = element.clientWidth;
 
-		const checkboxSize = Math.max(Math.floor(width / 60), 22);
+		const checkboxSize = Math.max(Math.floor(width / 60), 21);
 		const itemsPerRow = Math.max(1, Math.floor(width / checkboxSize));
 
 		console.log("items per row", itemsPerRow);
