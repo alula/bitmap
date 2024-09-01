@@ -124,7 +124,7 @@ export class BitmapClient {
 		ws.addEventListener("close", () => {
 			console.log("Disconnected from server");
 			this.websocket = null;
-			setTimeout(() => this.openWebSocket(), 1000);
+			setTimeout(() => this.openWebSocket(), 5000);
 		});
 
 		ws.addEventListener("error", (err) => {
