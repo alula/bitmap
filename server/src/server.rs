@@ -6,7 +6,7 @@ use crate::{
 };
 use futures_util::AsyncWriteExt;
 use serde::{Deserialize, Serialize};
-use signal_hook::consts::{SIGINT, SIGQUIT};
+use signal_hook::consts::{SIGINT, SIGQUIT, SIGTERM};
 use signal_hook_tokio::Signals;
 use soketto::{
     handshake::{server::Response, Server},
@@ -83,7 +83,7 @@ impl BitmapServer {
 
         let ctx = self.ctx.clone();
         tokio::spawn(async move {
-            let mut signals = Signals::new(&[SIGINT, SIGQUIT]).unwrap();
+            let mut signals = Signals::new(&[SIGINT, SIGTERM, SIGQUIT]).unwrap();
             let handle = signals.handle();
 
             while let Some(signal) = signals.next().await {
