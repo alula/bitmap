@@ -74,10 +74,12 @@ impl BitmapServer {
     pub async fn run(&self) -> PResult<()> {
         let net_task = Self::net_task(self.ctx.clone());
         let bitmap_task = Self::bitmap_task(self.ctx.clone());
+		let save_task = Self::save_task(self.ctx.clone());
 
         let mut join_set = JoinSet::new();
         join_set.spawn(async move { net_task.await });
         join_set.spawn(async move { bitmap_task.await });
+		join_set.spawn(async move { save_task.await });
 
         let ctx = self.ctx.clone();
         tokio::spawn(async move {
@@ -116,6 +118,25 @@ impl BitmapServer {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             {
                 ctx.bitmap.write().await.periodic_send_changes();
+            }
+        }
+    }
+
+    async fn save_task(ctx: Arc<SharedServerContext>) -> PResult<()> {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(600)).await;
+            {
+                if let Err(e) = ctx.metrics.save_to_file(METRICS_PATH) {
+                    log::error!("Failed to save metrics: {}", e);
+                } else {
+                    log::info!("Metrics saved.");
+                }
+
+                if let Err(e) = ctx.bitmap.read().await.save_to_file(STATE_PATH) {
+                    log::error!("Failed to save state: {}", e);
+                } else {
+                    log::info!("State saved.");
+                }
             }
         }
     }
@@ -278,7 +299,7 @@ impl BitmapServer {
                         let mut bitmap = ctx.bitmap.write().await;
                         update_receiver = Some(bitmap.subscribe(chunk as usize));
                     } else if let Some(ClientTaskMessage::SendStats) = msg {
-						log::debug!("[Client{}] Received send stats message", client_id);
+                        log::debug!("[Client{}] Received send stats message", client_id);
                         let stats = MessageMut::create_message(MessageType::Stats, &mut send_data)?;
                         if let MessageMut::Stats(stats) = stats {
                             stats.current_clients = ctx.metrics.clients.load(Ordering::Relaxed);
@@ -453,7 +474,7 @@ impl std::error::Error for BitmapError {}
 /// Server statistics
 #[derive(Serialize, Deserialize, Default)]
 struct Metrics {
-	#[serde(skip)]
+    #[serde(skip)]
     // Number of clients connected
     clients: AtomicU32,
     // Peak number of clients connected at the same time
