@@ -152,21 +152,30 @@ class Overlay extends Component<OverlayProps, OverlayState> {
 					</p>
 
 					<p>
-						<a href="https://github.com/alula/bitmap">Source code</a>
+						<a href="https://github.com/alula/bitmap" target="_blank">
+							Source code
+						</a>
 						{" | "}
-						<a href="/proto-docs">Protocol documentation</a>
+						<a href="/proto-docs" target="_blank">
+							Protocol docs
+						</a>
+						{" | "}
+						<a href="/changelog" target="_blank">
+							Changelog
+						</a>
 						<span className="secret">
 							{" | "}
 							<a href="#" onClick={() => this.toggleDebug()}>
-								toggle debug
+								debug
 							</a>
 						</span>
 					</p>
 
 					{state.debug && (
 						<div>
+							you found the hidden debug menu!
 							<button className="btn" onClick={() => this.downloadPage()}>
-								Download page
+								Dump state of current page to file
 							</button>
 						</div>
 					)}
