@@ -344,7 +344,7 @@ impl BitmapServer {
             Message::ToggleBit(msg) => {
                 let idx = msg.index as usize;
                 log::debug!("Received toggle bit: {}", idx);
-                let addend = ctx.bitmap.write().await.toggle(idx);
+                let addend = ctx.bitmap.read().await.toggle(idx);
                 ctx.metrics.inc_checked_bits(addend as i32);
                 ctx.metrics.inc_bit_toggles();
             }

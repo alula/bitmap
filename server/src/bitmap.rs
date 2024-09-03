@@ -1,10 +1,13 @@
 use std::{
     collections::HashMap,
     io::{Read, Write},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
-use bitvec::array::BitArray;
+use bitvec::{array::BitArray, order::BitOrder, view::BitViewSized};
 use tokio::sync::broadcast;
 
 use crate::common::PResult;
@@ -93,9 +96,16 @@ impl Bitmap {
         self.change_tracker.mark_bit_changed(index);
     }
 
-    pub fn toggle(&mut self, index: usize) -> i32 {
-        let curr = self.get(index);
-        self.set(index, !curr);
+    pub fn toggle(&self, index: usize) -> i32 {
+        if index >= self.len() {
+            return 0;
+        }
+
+        let chunk_index = index / CHUNK_SIZE;
+        let bit_index = index % CHUNK_SIZE;
+        let curr = toggle_bit_atomic(&self.data[chunk_index], bit_index);
+
+        self.change_tracker.mark_bit_changed(index);
 
         if curr {
             -1
@@ -180,9 +190,8 @@ impl ChangeTracker {
         }
     }
 
-    pub fn mark_bit_changed(&mut self, bit_index: usize) {
-        self.change_mask
-            .set(bit_index / UPDATE_CHUNK_SIZE_BITS, true);
+    pub fn mark_bit_changed(&self, bit_index: usize) {
+        set_bit_atomic(&self.change_mask, bit_index / UPDATE_CHUNK_SIZE_BITS);
     }
 
     pub fn clear(&mut self) {
@@ -232,5 +241,36 @@ impl ChangeTracker {
             let change = Arc::new(change_data);
             let _ = sender.send(change);
         }
+    }
+}
+
+fn set_bit_atomic<S, O>(bit_slice: &BitArray<S, O>, index: usize)
+where
+    S: BitViewSized,
+    O: BitOrder,
+{
+    let slice = bit_slice.as_raw_slice();
+
+    unsafe {
+        let ptr = slice.as_ptr().add(index / (size_of::<S::Store>() * 8)) as *mut usize;
+        let mask = 1 << (index % (size_of::<S::Store>() * 8));
+
+        AtomicUsize::from_ptr(ptr).fetch_or(mask, Ordering::Relaxed);
+    }
+}
+
+fn toggle_bit_atomic<S, O>(bit_slice: &BitArray<S, O>, index: usize) -> bool
+where
+    S: BitViewSized,
+    O: BitOrder,
+{
+    let slice = bit_slice.as_raw_slice();
+
+    unsafe {
+        let ptr = slice.as_ptr().add(index / (size_of::<S::Store>() * 8)) as *mut usize;
+        let mask = 1 << (index % (size_of::<S::Store>() * 8));
+
+        let old = AtomicUsize::from_ptr(ptr).fetch_xor(mask, Ordering::Relaxed);
+        old & mask != 0
     }
 }
