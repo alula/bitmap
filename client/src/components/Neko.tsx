@@ -103,8 +103,8 @@ const NEKO_SPEED = 13;
 const BITMAP_SIZE = 32;
 const MAX_TICK = 9999;
 
-const SIN_PI_PER_8 = 0.382683432; //Math.sin(Math.PI / 8);
-const SIN_PI_PER_8_TIMES_3 = 3 * SIN_PI_PER_8; // Math.sin(Math.PI / 8 * 3);
+const SIN_PI_PER_8 = Math.sin(Math.PI / 8);
+const SIN_PI_PER_8_TIMES_3 = Math.sin((Math.PI / 8) * 3);
 
 const patterns: Array<[SpriteType, SpriteType]> = [
 	[mati2, mati2],
