@@ -171,8 +171,11 @@ impl BitmapServer {
         let socket = socket?;
         let peer_addr = socket.peer_addr().ok();
         let mut server = Server::new(socket.compat());
-        let deflate = Box::new(Deflate::new(soketto::Mode::Server));
-        server.add_extension(deflate);
+
+        if ctx.settings.ws_permessage_deflate {
+            let deflate = Box::new(Deflate::new(soketto::Mode::Server));
+            server.add_extension(deflate);
+        }
 
         let websocket_key = {
             let req = server.receive_request().await;

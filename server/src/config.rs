@@ -12,6 +12,10 @@ pub struct Settings {
     /// Use CF-Connecting-IP and X-Forwarded-For headers to determine the client's IP address.
     #[serde(default = "Settings::default_parse_proxy_headers")]
     pub parse_proxy_headers: bool,
+
+    /// Enable permessage-deflate WebSocket extension.
+    /// Currently disabled by default, due to https://github.com/paritytech/soketto/issues/49
+    pub ws_permessage_deflate: bool,
 }
 
 impl Settings {
