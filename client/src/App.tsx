@@ -2,8 +2,9 @@ import { Component, render } from "inferno";
 import { CheckboxGrid } from "./components/CheckboxGrid";
 import { BitmapClient } from "./client";
 import { Header } from "./components/Header";
-import { applyThemeFromStorage } from "./utils";
+import { applyThemeFromStorage, debug } from "./utils";
 import { LoadingSpinner } from "./components/Loading";
+import { NekoComponent } from "./components/Neko";
 
 interface AppState {
 	loading: boolean;
@@ -23,6 +24,18 @@ export class App extends Component<object> {
 		this.client.loadingCallback = (loading: boolean) => this.setState({ loading });
 	}
 
+	#onDebugChange = () => {
+		this.forceUpdate();
+	};
+
+	componentDidMount(): void {
+		debug.subscribe(this.#onDebugChange);
+	}
+
+	componentWillUnmount(): void {
+		debug.unsubscribe(this.#onDebugChange);
+	}
+
 	render(_props: object, { loading }: AppState) {
 		return (
 			<main>
@@ -34,6 +47,7 @@ export class App extends Component<object> {
 						<span>Connecting</span>
 					</div>
 				)}
+				{debug.value && <NekoComponent />}
 			</main>
 		);
 	}

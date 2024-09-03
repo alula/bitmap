@@ -1,6 +1,6 @@
 import { Component, FormEvent } from "inferno";
 import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
-import { applyTheme, getCurrentTheme, themes, isDebug, setDebug, downloadUint8Array } from "../utils";
+import { applyTheme, downloadUint8Array, getCurrentTheme, debug, themes } from "../utils";
 import { Spinner } from "./Spinner";
 
 function dummy() {}
@@ -104,32 +104,34 @@ interface OverlayProps {
 	close: () => void;
 }
 
-interface OverlayState {
-	debug: boolean;
-}
-
-class Overlay extends Component<OverlayProps, OverlayState> {
+class Overlay extends Component<OverlayProps> {
 	constructor(props: OverlayProps) {
 		super(props);
-
-		this.state = {
-			debug: isDebug(),
-		};
 	}
 
-	toggleDebug(): void {
-		const debug = !this.state!.debug;
-		this.setState({ debug });
-		setDebug(debug);
+	#toggleDebug(): void {
+		debug.value = !debug.value;
 	}
 
-	downloadPage(): void {
+	#downloadPage(): void {
 		const data = this.props.client.getUint8Array();
 		const filename = `state-${this.props.client.chunkIndex}.bin`;
 		downloadUint8Array(data, filename);
 	}
 
-	render(props: OverlayProps, state: OverlayState) {
+	#onDebugChange = () => {
+		this.forceUpdate();
+	};
+
+	componentDidMount(): void {
+		debug.subscribe(this.#onDebugChange);
+	}
+
+	componentWillUnmount(): void {
+		debug.unsubscribe(this.#onDebugChange);
+	}
+
+	render(props: OverlayProps) {
 		return (
 			<div className="overlay" onClick={props.close}>
 				<div className="overlay-content" onClick={(e) => e.stopPropagation()}>
@@ -165,16 +167,16 @@ class Overlay extends Component<OverlayProps, OverlayState> {
 						</a>
 						<span className="secret">
 							{" | "}
-							<a href="#" onClick={() => this.toggleDebug()}>
+							<a href="#" onClick={() => this.#toggleDebug()}>
 								debug
 							</a>
 						</span>
 					</p>
 
-					{state.debug && (
+					{debug.value && (
 						<div>
 							you found the hidden debug menu!
-							<button className="btn" onClick={() => this.downloadPage()}>
+							<button className="btn" onClick={() => this.#downloadPage()}>
 								Dump state of current page to file
 							</button>
 						</div>

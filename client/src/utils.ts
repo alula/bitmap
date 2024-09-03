@@ -1,3 +1,31 @@
+export class Observable<T> {
+	#value: T;
+	#listeners: Set<(value: T) => void>;
+
+	constructor(value: T) {
+		this.#value = value;
+		this.#listeners = new Set();
+	}
+
+	get value(): T {
+		return this.#value;
+	}
+
+	set value(value: T) {
+		this.#value = value;
+		this.#listeners.forEach((listener) => listener(value));
+	}
+
+	subscribe(listener: (value: T) => void): void {
+		this.#listeners.add(listener);
+		listener(this.#value);
+	}
+
+	unsubscribe(listener: (value: T) => void): void {
+		this.#listeners.delete(listener);
+	}
+}
+
 const themeStorageKey = "1bcb__theme";
 const debugStorageKey = "1bcb__debug";
 
@@ -24,19 +52,16 @@ export function applyThemeFromStorage(): void {
 	applyTheme(getCurrentTheme());
 }
 
-let debug = typeof window !== "undefined" && localStorage.getItem(debugStorageKey) === "true";
+export const debug = new Observable(typeof window !== "undefined" && localStorage.getItem(debugStorageKey) === "true");
 
-export function setDebug(value: boolean): void {
-	debug = value;
-	if (value) {
-		localStorage.setItem(debugStorageKey, "true");
-	} else {
-		localStorage.removeItem(debugStorageKey);
-	}
-}
-
-export function isDebug(): boolean {
-	return debug;
+if (typeof window !== "undefined") {
+	debug.subscribe((value) => {
+		if (value) {
+			localStorage.setItem(debugStorageKey, "true");
+		} else {
+			localStorage.removeItem(debugStorageKey);
+		}
+	});
 }
 
 export function downloadUint8Array(data: Uint8Array, filename: string): void {
