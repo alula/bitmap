@@ -1,5 +1,7 @@
 import { Component, createRef, RefObject } from "inferno";
 
+import neko from "../../assets/neko.png";
+
 // ported from https://github.com/tie/oneko/blob/master/oneko.c
 
 const enum NekoState {
@@ -346,9 +348,6 @@ export class NekoComponent extends Component {
 		this.neko.setDisplaySize(dispWidth, dispHeight);
 		this.neko.pos.x = (dispWidth / 2) | 0;
 		this.neko.pos.y = (dispHeight / 2) | 0;
-		window.addEventListener("mousemove", this.onMouseMove);
-		window.addEventListener("resize", this.onResize);
-		this.interval = setInterval(this.updateNeko, 125);
 
 		const el = this.ref.current!;
 		el.style.position = "fixed";
@@ -356,16 +355,22 @@ export class NekoComponent extends Component {
 		el.style.width = `${BITMAP_SIZE}px`;
 		el.style.height = `${BITMAP_SIZE}px`;
 		el.style.pointerEvents = "none";
-		el.style.backgroundImage = "url(/assets/neko.png)";
+		el.style.backgroundImage = `url(${neko})`;
+
+		window.addEventListener("mousemove", this.#onMouseMove);
+		window.addEventListener("resize", this.#onResize);
+		this.interval = setInterval(this.#updateNeko, 125);
+		this.#updateNeko();
 	}
 
 	componentWillUnmount(): void {
-		window.removeEventListener("mousemove", this.onMouseMove);
-		window.removeEventListener("resize", this.onResize);
+		window.removeEventListener("mousemove", this.#onMouseMove);
+		window.removeEventListener("resize", this.#onResize);
 		clearInterval(this.interval);
+		this.interval = undefined;
 	}
 
-	updateNeko = () => {
+	#updateNeko = () => {
 		this.neko.updateNeko();
 
 		const el = this.ref.current;
@@ -376,11 +381,11 @@ export class NekoComponent extends Component {
 		}
 	};
 
-	onMouseMove = (e: MouseEvent) => {
+	#onMouseMove = (e: MouseEvent) => {
 		this.neko.mouseMoved(e.clientX, e.clientY);
 	};
 
-	onResize = () => {
+	#onResize = () => {
 		this.neko.setDisplaySize(window.innerWidth, window.innerHeight);
 	};
 
