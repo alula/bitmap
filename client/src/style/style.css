@@ -461,6 +461,10 @@ main {
 }
 
 @media (max-width: 768px) {
+	.header {
+		padding-inline: 1rem;
+	}
+
 	.header-inner {
 		text-align: center;
 		padding: 0.75rem 1rem;
@@ -469,7 +473,9 @@ main {
 
 	.header .title {
 		font-size: 1.4rem;
-		text-align: start;
+		text-align: center;
+		margin-bottom: 1rem;
+		width: 100%;
 	}
 
 	.header .title .t1e3 {
@@ -478,6 +484,16 @@ main {
 
 	.header .title .t1b {
 		position: initial;
+	}
+
+	.header-menu {
+		margin-block: 0.5rem;
+		margin-inline: 0;
+		order: 1;
+	}
+
+	.header-page {
+		max-width: 8rem;
 	}
 
 	.loading-overlay {
