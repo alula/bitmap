@@ -9,6 +9,7 @@ import markdownItPrism from "markdown-it-prism";
 export default defineConfig({
 	build: {
 		target: ["es2020", "edge88", "firefox78", "chrome87", "safari13"],
+		minify: "terser",
 	},
 	plugins: [
 		mdPlugin({

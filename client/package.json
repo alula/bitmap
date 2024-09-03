@@ -34,6 +34,7 @@
 		"markdown-it": "^14.1.0",
 		"markdown-it-prism": "^2.3.0",
 		"prettier": "^3.3.3",
+		"terser": "^5.31.6",
 		"typescript": "^5.5.4",
 		"typescript-eslint": "^8.3.0",
 		"vike": "^0.4.193",
