@@ -10,3 +10,8 @@ indent_style = tab
 charset = utf-8
 indent_style = space
 indent_size = 2
+
+[*.rs]
+charset = utf-8
+indent_style = space
+indent_size = 4
