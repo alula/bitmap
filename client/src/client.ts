@@ -1,4 +1,5 @@
 import { Bitmap } from "./bitmap";
+import { Observable } from "./utils";
 
 export const PROTOCOL_VERSION = 1;
 export const CHUNK_SIZE = 64 * 64 * 64;
@@ -64,12 +65,12 @@ export class BitmapClient {
 	public bitmap: Bitmap;
 	public goToCheckboxCallback: (index: number) => void = () => {};
 	public loadingCallback: (loading: boolean) => void = () => {};
-	public currentClientsCallback: (currentClients: number) => void = () => {};
 	public highlightedIndex = -1;
 
 	private websocket: WebSocket | null = null;
 	currentChunkIndex = 0;
-	currentClients = 1;
+	currentClients = new Observable<number>(1);
+	checkedCount = new Observable<number>(0);
 	chunkLoaded = false;
 
 	constructor() {
@@ -156,13 +157,13 @@ export class BitmapClient {
 		} else if (msg.msg === MessageType.Stats) {
 			const stats = msg as StatsMessage;
 			console.log("Current clients", stats.currentClients);
-			this.currentClients = stats.currentClients;
-			this.currentClientsCallback(this.currentClients);
+			this.currentClients.value = stats.currentClients;
 		} else if (msg.msg === MessageType.ChunkFullStateResponse) {
 			const fullState = msg as ChunkFullStateResponseMessage;
 			if (fullState.chunkIndex !== this.chunkIndex) return;
 
 			this.bitmap.fullStateUpdate(fullState.bitmap);
+			this.checkedCount.value = this.bitmap.checkedCount;
 			this.chunkLoaded = true;
 			this.loadingCallback(false);
 		} else if (msg.msg === MessageType.PartialStateUpdate) {
@@ -174,6 +175,7 @@ export class BitmapClient {
 			const byteOffset = partialState.offset % CHUNK_SIZE_BYTES;
 
 			this.bitmap.partialStateUpdate(byteOffset, partialState.chunk);
+			this.checkedCount.value = this.bitmap.checkedCount;
 		}
 	}
 

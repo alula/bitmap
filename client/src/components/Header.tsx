@@ -3,8 +3,6 @@ import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
 import { applyTheme, downloadUint8Array, getCurrentTheme, debug, themes } from "../utils";
 import { Spinner } from "./Spinner";
 
-function dummy() {}
-
 interface GoToCheckboxFormProps {
 	client: BitmapClient;
 	close: () => void;
@@ -194,6 +192,7 @@ interface HeaderProps {
 interface HeaderState {
 	menuOpen: boolean;
 	currentClients: number;
+	checkedCount: number;
 }
 
 export class Header extends Component<HeaderProps> {
@@ -202,29 +201,40 @@ export class Header extends Component<HeaderProps> {
 
 		this.state = {
 			menuOpen: false,
-			currentClients: props.client.currentClients,
+			currentClients: props.client.currentClients.value,
+			checkedCount: props.client.checkedCount.value,
 		};
 	}
 
 	componentDidMount(): void {
-		this.props.client.currentClientsCallback = (currentClients: number) => {
-			this.setState({ currentClients });
-		};
+		const client = this.props.client;
+		client.currentClients.subscribe(this.#onCurrentClientsChange);
+		client.checkedCount.subscribe(this.#onCheckedCountChange);
 	}
 
 	componentWillUnmount(): void {
-		this.props.client.currentClientsCallback = dummy;
+		const client = this.props.client;
+		client.currentClients.unsubscribe(this.#onCurrentClientsChange);
+		client.checkedCount.unsubscribe(this.#onCheckedCountChange);
 	}
 
-	onPageChange(value: number): void {
+	#onPageChange = (value: number): void => {
 		value = value - 1;
 
 		this.props.client.setChunkIndex(value);
 		this.forceUpdate();
-	}
+	};
 
-	setOpen(open: boolean): void {
-		this.setState({ menuOpen: open });
+	#onCurrentClientsChange = (currentClients: number): void => {
+		this.setState({ currentClients });
+	};
+
+	#onCheckedCountChange = (checkedCount: number): void => {
+		this.setState({ checkedCount });
+	};
+
+	#setOpen(menuOpen: boolean): void {
+		this.setState({ menuOpen });
 	}
 
 	render(props: HeaderProps, state: HeaderState) {
@@ -241,13 +251,15 @@ export class Header extends Component<HeaderProps> {
 					</div>
 
 					<div className="header-menu">
-						<button className="btn btn-primary" onClick={() => this.setOpen(true)}>
+						<button className="btn btn-primary" onClick={() => this.#setOpen(true)}>
 							Menu
 						</button>
 
-						<span className="desktop-only">
+						<span>
 							{state.currentClients} {state.currentClients === 1 ? "person" : "people"} online
 						</span>
+
+						<span className="small">{state.checkedCount} checked on this page</span>
 					</div>
 
 					<div className={"header-page"}>
@@ -259,13 +271,13 @@ export class Header extends Component<HeaderProps> {
 						</span>
 						<Spinner
 							value={props.client.chunkIndex + 1}
-							onChange={(v) => this.onPageChange(v)}
+							onChange={this.#onPageChange}
 							min={1}
 							max={CHUNK_COUNT}
 						/>
 					</div>
 				</div>
-				{state.menuOpen && <Overlay client={props.client} close={() => this.setOpen(false)} />}
+				{state.menuOpen && <Overlay client={props.client} close={() => this.#setOpen(false)} />}
 			</div>
 		);
 	}
