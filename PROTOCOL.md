@@ -113,7 +113,7 @@ compatible. Any new fields will be added in the `reserved` field.
 #### 0x10 - Chunk Full State Request (Client->Server)
 
 ```c
-struct FullStateRequestMessage {
+struct ChunkFullStateRequestMessage {
 	MessageType type = 0x10;
 	uint16_t chunkIndex;
 };
