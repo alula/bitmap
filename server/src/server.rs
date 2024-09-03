@@ -94,15 +94,7 @@ impl BitmapServer {
 
             handle.close();
 
-            if let Err(e) = ctx.metrics.save_to_file(METRICS_PATH) {
-                log::error!("Failed to save metrics: {}", e);
-            }
-            log::info!("Metrics saved.");
-
-            if let Err(e) = ctx.bitmap.write().await.save_to_file(STATE_PATH) {
-                log::error!("Failed to save state: {}", e);
-            }
-            log::info!("State saved.");
+            Self::do_save(&ctx).await;
 
             std::process::exit(0);
         });
@@ -126,19 +118,21 @@ impl BitmapServer {
     async fn save_task(ctx: Arc<SharedServerContext>) -> PResult<()> {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(600)).await;
-            {
-                if let Err(e) = ctx.metrics.save_to_file(METRICS_PATH) {
-                    log::error!("Failed to save metrics: {}", e);
-                } else {
-                    log::info!("Metrics saved.");
-                }
+            Self::do_save(&ctx).await;
+        }
+    }
 
-                if let Err(e) = ctx.bitmap.read().await.save_to_file(STATE_PATH) {
-                    log::error!("Failed to save state: {}", e);
-                } else {
-                    log::info!("State saved.");
-                }
-            }
+    async fn do_save(ctx: &Arc<SharedServerContext>) {
+        if let Err(e) = ctx.metrics.save_to_file(METRICS_PATH) {
+            log::error!("Failed to save metrics: {}", e);
+        } else {
+            log::info!("Metrics saved.");
+        }
+
+        if let Err(e) = ctx.bitmap.write().await.save_to_file(STATE_PATH) {
+            log::error!("Failed to save state: {}", e);
+        } else {
+            log::info!("State saved.");
         }
     }
 
