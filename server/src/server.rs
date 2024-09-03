@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use signal_hook::consts::{SIGINT, SIGQUIT, SIGTERM};
 use signal_hook_tokio::Signals;
 use soketto::{
+    extension::deflate::Deflate,
     handshake::{server::Response, Server},
     Data,
 };
@@ -170,6 +171,8 @@ impl BitmapServer {
         let socket = socket?;
         let peer_addr = socket.peer_addr().ok();
         let mut server = Server::new(socket.compat());
+        let deflate = Box::new(Deflate::new(soketto::Mode::Server));
+        server.add_extension(deflate);
 
         let websocket_key = {
             let req = server.receive_request().await;
@@ -199,7 +202,10 @@ impl BitmapServer {
         };
         server.send_response(&accept).await?;
 
-        let (mut sender, mut receiver) = server.into_builder().finish();
+        let mut builder = server.into_builder();
+        builder.set_max_message_size(512 * 1024);
+        builder.set_max_message_size(512 * 1024);
+        let (mut sender, mut receiver) = builder.finish();
 
         let mut send_data = Vec::new();
         let mut recv_data = Vec::new();

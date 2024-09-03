@@ -12,7 +12,7 @@ log = { version = "0.4", features = ["release_max_level_info"] }
 pretty_env_logger = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-soketto = "0.8"
+soketto = { version = "0.8", features = ["deflate"] }
 signal-hook = "0.3"
 signal-hook-tokio = { version = "0.3", features = ["futures-v0_3"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
