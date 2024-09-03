@@ -5,7 +5,7 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 use crate::bitmap::{CHUNK_SIZE_BYTES, UPDATE_CHUNK_SIZE};
 
 pub const PROTOCOL_VERSION_MAJOR: u16 = 1;
-pub const PROTOCOL_VERSION_MINOR: u16 = 0;
+pub const PROTOCOL_VERSION_MINOR: u16 = 1;
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -17,6 +17,7 @@ pub enum MessageType {
     PartialStateUpdate = 0x12,
     ToggleBit = 0x13,
     PartialStateSubscription = 0x14,
+    PartialStateUnsubscription = 0x15,
 }
 
 impl MessageType {
@@ -26,6 +27,7 @@ impl MessageType {
             MessageType::ChunkFullStateRequest
                 | MessageType::ToggleBit
                 | MessageType::PartialStateSubscription
+                | MessageType::PartialStateUnsubscription
         )
     }
 
@@ -116,6 +118,7 @@ pub enum Message<'a> {
     PartialStateUpdate(&'a PartialStateUpdateMessage),
     ToggleBit(&'a ToggleBitMessage),
     PartialStateSubscription(&'a PartialStateSubscriptionMessage),
+    PartialStateUnsubscription,
 }
 
 impl Message<'_> {
@@ -128,6 +131,7 @@ impl Message<'_> {
             Message::PartialStateUpdate(_) => MessageType::PartialStateUpdate,
             Message::ToggleBit(_) => MessageType::ToggleBit,
             Message::PartialStateSubscription(_) => MessageType::PartialStateSubscription,
+            Message::PartialStateUnsubscription => MessageType::PartialStateUnsubscription,
         }
     }
 
@@ -170,6 +174,9 @@ impl Message<'_> {
             x if x == MessageType::PartialStateSubscription as u8 => {
                 message_handler!(PartialStateSubscription, PartialStateSubscriptionMessage)
             }
+            x if x == MessageType::PartialStateUnsubscription as u8 => {
+                Ok(Message::PartialStateUnsubscription)
+            }
             _ => Err(ProtocolError::InvalidMessageId),
         }
     }
@@ -183,6 +190,7 @@ pub enum MessageMut<'a> {
     PartialStateUpdate(&'a mut PartialStateUpdateMessage),
     ToggleBit(&'a mut ToggleBitMessage),
     PartialStateSubscription(&'a mut PartialStateSubscriptionMessage),
+    PartialStateUnsubscription,
 }
 
 impl MessageMut<'_> {
@@ -195,6 +203,7 @@ impl MessageMut<'_> {
             MessageMut::PartialStateUpdate(_) => MessageType::PartialStateUpdate,
             MessageMut::ToggleBit(_) => MessageType::ToggleBit,
             MessageMut::PartialStateSubscription(_) => MessageType::PartialStateSubscription,
+            MessageMut::PartialStateUnsubscription => MessageType::PartialStateUnsubscription,
         }
     }
 
@@ -238,6 +247,9 @@ impl MessageMut<'_> {
             x if x == MessageType::PartialStateSubscription as u8 => {
                 message_handler!(PartialStateSubscription, PartialStateSubscriptionMessage)
             }
+            x if x == MessageType::PartialStateUnsubscription as u8 => {
+                Ok(MessageMut::PartialStateUnsubscription)
+            }
             _ => Err(ProtocolError::InvalidMessageId),
         }
     }
@@ -256,7 +268,7 @@ impl MessageMut<'_> {
             MessageType::PartialStateUpdate => size_of::<PartialStateUpdateMessage>(),
             MessageType::ToggleBit => size_of::<ToggleBitMessage>(),
             MessageType::PartialStateSubscription => size_of::<PartialStateSubscriptionMessage>(),
-            _ => return Err(ProtocolError::InvalidMessageId),
+            MessageType::PartialStateUnsubscription => 0,
         };
         buffer.clear();
         buffer.resize(size + 1, 0);
@@ -271,6 +283,7 @@ pub fn is_valid_client_message_id(id: u8) -> bool {
         x if x == MessageType::ChunkFullStateRequest as u8 => true,
         x if x == MessageType::ToggleBit as u8 => true,
         x if x == MessageType::PartialStateSubscription as u8 => true,
+        x if x == MessageType::PartialStateUnsubscription as u8 => true,
         _ => false,
     }
 }

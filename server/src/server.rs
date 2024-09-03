@@ -43,6 +43,7 @@ struct SharedServerContext {
 #[derive(Debug, Clone, Copy)]
 enum ClientTaskMessage {
     Subscribe { chunk: u16 },
+    UnsubscribeAll,
     SendStats,
 }
 
@@ -74,12 +75,12 @@ impl BitmapServer {
     pub async fn run(&self) -> PResult<()> {
         let net_task = Self::net_task(self.ctx.clone());
         let bitmap_task = Self::bitmap_task(self.ctx.clone());
-		let save_task = Self::save_task(self.ctx.clone());
+        let save_task = Self::save_task(self.ctx.clone());
 
         let mut join_set = JoinSet::new();
         join_set.spawn(async move { net_task.await });
         join_set.spawn(async move { bitmap_task.await });
-		join_set.spawn(async move { save_task.await });
+        join_set.spawn(async move { save_task.await });
 
         let ctx = self.ctx.clone();
         tokio::spawn(async move {
@@ -298,6 +299,9 @@ impl BitmapServer {
                         log::debug!("[Client{}] Received subscribe message for chunk {}", client_id, chunk);
                         let mut bitmap = ctx.bitmap.write().await;
                         update_receiver = Some(bitmap.subscribe(chunk as usize));
+                    } else if let Some(ClientTaskMessage::UnsubscribeAll) = msg {
+                        log::debug!("[Client{}] Received unsubscribe all message", client_id);
+                        update_receiver = None;
                     } else if let Some(ClientTaskMessage::SendStats) = msg {
                         log::debug!("[Client{}] Received send stats message", client_id);
                         let stats = MessageMut::create_message(MessageType::Stats, &mut send_data)?;
@@ -356,6 +360,9 @@ impl BitmapServer {
                         chunk: msg.chunk_index,
                     })
                     .await?;
+            }
+            Message::PartialStateUnsubscription => {
+                ctm_sender.send(ClientTaskMessage::UnsubscribeAll).await?;
             }
             _ => (),
         }

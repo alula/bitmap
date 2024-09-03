@@ -1,4 +1,4 @@
-# Protocol documentation - version 1.0
+# Protocol documentation - version 1.1
 
 ## Introduction
 
@@ -215,6 +215,16 @@ The client can only subscribe to a single chunk at a time. If the client sends a
 `0x14 - Partial State Subscription` message, the server will unsubscribe the client from the 
 previous chunk and subscribe to the new one.
 
+#### 0x15 - Partial State Unsubscription (Client->Server)
+
+```c
+struct PartialStateUnsubscriptionMessage {
+	MessageType type = 0x15;
+};
+```
+
+The client sends a message to the server to unsubscribe from currently subscribed chunk.
+
 ## Connection flow example
 
 ```
@@ -267,3 +277,11 @@ Client                         Server
   | <-----------------------------|
 
 ```
+
+## Changelog
+
+### 1.1
+
+Backwards compatible with 1.0.
+
+- Added the `0x15 - Partial State Unsubscription` message.
