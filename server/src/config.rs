@@ -15,6 +15,7 @@ pub struct Settings {
 
     /// Enable permessage-deflate WebSocket extension.
     /// Currently disabled by default, due to https://github.com/paritytech/soketto/issues/49
+    #[serde(default)]
     pub ws_permessage_deflate: bool,
 }
 
