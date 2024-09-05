@@ -92,7 +92,6 @@ class CheckboxRow extends Component<CheckboxRowProps> {
 								type="checkbox"
 								className={
                                     `${checkboxStyle} ${isHighlighted(idx)} ${tickMarkToggle}`
-                                    .split(" ").filter( x => x !== '' ).join(' ')
                                 }
 								onChange={() => this.onChange(idx)}
 								ref={this.checkboxRefs[i]}
