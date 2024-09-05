@@ -1,6 +1,6 @@
 import { Component, FormEvent } from "inferno";
 import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
-import { applyTheme, downloadUint8Array, getCurrentTheme, debug, themes } from "../utils";
+import { applyTheme, downloadUint8Array, getCurrentTheme, debug, themes, getCheckboxStylePreference, setCheckboxStylePreference, getTickMarkVisible, setTickMarkVisible } from "../utils";
 import { Spinner } from "./Spinner";
 
 interface GoToCheckboxFormProps {
@@ -97,6 +97,86 @@ class ThemePicker extends Component<object, ThemePickerState> {
 	}
 }
 
+interface CheckboxStylePreferenceState {
+    preference: string;
+}
+
+class CheckboxStylePreference extends Component<object, CheckboxStylePreferenceState> {
+    constructor(props: object) {
+		super(props);
+
+		this.state = {
+			preference: getCheckboxStylePreference(),
+		};
+	}
+
+	setPreference(isChecked: boolean): void {
+
+        const preference = (isChecked) ? "reduced" : "default";
+        setCheckboxStylePreference( preference );
+        this.setState({ preference });
+	}
+
+	render(_props: object, state: CheckboxStylePreferenceState) {
+		return (
+			<div className="flex gap-2 mb-2">
+				<b>Reduced checkbox style:</b>
+				<input
+                    type="checkbox"
+					value={state.preference}
+					onChange={(e) => this.setPreference( e.target.checked )}
+                    checked={this.state?.preference === "reduced"}
+					$HasNonKeyedChildren
+				>
+					{themes.map((theme) => (
+						<option value={theme.id}>{theme.label}</option>
+					))}
+				</input>
+			</div>
+		);
+	}
+}
+
+interface TickMarkVisibilityState {
+    hasTick: boolean;
+}
+
+class TickMarkVisibility extends Component<object, TickMarkVisibilityState> {
+    constructor(props: object) {
+		super(props);
+
+		this.state = {
+			hasTick: getTickMarkVisible(),
+		};
+	}
+
+	setPreference(isChecked: boolean): void {
+
+        const hasTick = !isChecked;
+        setTickMarkVisible( hasTick );
+        this.setState({ hasTick });
+	}
+
+	render(_props: object, state: TickMarkVisibilityState) {
+		return (
+			<div className="flex gap-2 mb-2">
+				<b>Remove ticks (✔):</b>
+				<input
+                    type="checkbox"
+					value={state.hasTick.toString()}
+					onChange={(e) => this.setPreference( e.target.checked )}
+                    checked={!this.state?.hasTick}
+					$HasNonKeyedChildren
+				>
+					{themes.map((theme) => (
+						<option value={theme.id}>{theme.label}</option>
+					))}
+				</input>
+			</div>
+		);
+	}
+}
+
 interface OverlayProps {
 	client: BitmapClient;
 	close: () => void;
@@ -141,6 +221,8 @@ class Overlay extends Component<OverlayProps> {
 					<GoToCheckboxForm client={props.client} close={props.close} />
 
 					<ThemePicker />
+                    <CheckboxStylePreference />
+                    <TickMarkVisibility />
 
 					<p>
 						A stupid project by <a href="https://github.com/alula">Alula</a>

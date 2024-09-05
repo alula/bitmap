@@ -1,6 +1,7 @@
 import { elementScroll, observeElementOffset, observeElementRect, Virtualizer } from "@tanstack/virtual-core";
 import { Component, createRef, InfernoNode, RefObject } from "inferno";
 import { BitmapClient, CHUNK_SIZE } from "../client";
+import { getCheckboxStylePreference, getTickMarkVisible } from "../utils";
 
 const CHECKBOX_SIZE = 30;
 
@@ -12,6 +13,8 @@ interface CheckboxRowProps {
 	itemsPerRow: number;
 	checkboxSize: number;
 	client: BitmapClient;
+    checkboxStylePreference: string;
+    hasTickMark: boolean;
 }
 
 class CheckboxRow extends Component<CheckboxRowProps> {
@@ -19,7 +22,6 @@ class CheckboxRow extends Component<CheckboxRowProps> {
 
 	constructor(props: CheckboxRowProps) {
 		super(props);
-
 		this.checkboxRefs = [...Array(props.count)].map(() => createRef());
 		this.bitmapChanged = this.bitmapChanged.bind(this);
 	}
@@ -67,7 +69,11 @@ class CheckboxRow extends Component<CheckboxRowProps> {
 	}
 
 	render(props: CheckboxRowProps): InfernoNode {
+
 		const baseIdx = props.client.chunkIndex * CHUNK_SIZE + props.index * props.itemsPerRow;
+        const checkboxStyle= (props.checkboxStylePreference === "reduced") ? "reduced" : "default";
+        const isHighlighted = (idx: number) => props.client.highlightedIndex === idx ? "highlighted" : ""
+        const tickMarkToggle = (props.hasTickMark) ? "" : "noTick";
 
 		return (
 			<div
@@ -84,7 +90,10 @@ class CheckboxRow extends Component<CheckboxRowProps> {
 						<div className="checkbox">
 							<input
 								type="checkbox"
-								className={props.client.highlightedIndex === idx ? "highlighted" : undefined}
+								className={
+                                    `${checkboxStyle} ${isHighlighted(idx)} ${tickMarkToggle}`
+                                    .split(" ").filter( x => x !== '' ).join(' ')
+                                }
 								onChange={() => this.onChange(idx)}
 								ref={this.checkboxRefs[i]}
 								checked={props.client.isChecked(idx)}
@@ -246,6 +255,8 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 									{...state}
 									index={virtualItem.index}
 									count={this.getCount(virtualItem.index * state.itemsPerRow)}
+                                    checkboxStylePreference={getCheckboxStylePreference()}
+                                    hasTickMark={getTickMarkVisible()}
 								/>
 							</div>
 						);

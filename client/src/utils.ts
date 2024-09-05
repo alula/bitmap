@@ -1,3 +1,5 @@
+import { renderApp } from "./App";
+
 export class Observable<T> {
 	#value: T;
 	#listeners: Set<(value: T) => void>;
@@ -28,6 +30,8 @@ export class Observable<T> {
 
 const themeStorageKey = "1bcb__theme";
 const debugStorageKey = "1bcb__debug";
+const tickMarkVisibleKey = "1bcb__hasTick";
+const checkboxStylePreferenceKey = "1bcb__checkboxStyle";
 
 export const themes = [
 	{ id: "ctp-mocha", label: "Catppuccin Dark" },
@@ -50,6 +54,24 @@ export function getCurrentTheme(): string {
 
 export function applyThemeFromStorage(): void {
 	applyTheme(getCurrentTheme());
+}
+
+export function setCheckboxStylePreference(preference: string): void {
+    localStorage.setItem(checkboxStylePreferenceKey, preference);
+    renderApp();
+}
+
+export function getCheckboxStylePreference(): string {
+	return localStorage.getItem(checkboxStylePreferenceKey) || "default";
+}
+
+export function setTickMarkVisible(hasTick: boolean): void {
+    localStorage.setItem(tickMarkVisibleKey, hasTick.toString());
+    renderApp();
+}
+
+export function getTickMarkVisible(): boolean {
+    return localStorage.getItem(tickMarkVisibleKey) === "true";
 }
 
 export const debug = new Observable(typeof window !== "undefined" && localStorage.getItem(debugStorageKey) === "true");
