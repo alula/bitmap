@@ -95,22 +95,28 @@ main {
 	clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
 	background-color: var(--secondary-2);
 }
-.checkbox input::before.default {
-    transform: scale(0);
-    transition: transform 0.2s;
-}
 
 .checkbox input:checked {
 	background-color: var(--active);
 	border-color: var(--active);
 }
 
-.checkbox input.default:checked::before {
+.checkbox input::before.default {
+    transition: transform 0.2s;
+}
+
+.checkbox input::before {
+    transform: scale(0);
+}
+
+.checkbox input:checked::before {
 	transform: scale(1);
 }
+
 .checkbox input.noTick:checked::before {
     display: none;
 }
+
 .checkbox input.noTick:not(:checked)::before {
     display: none;
 }
