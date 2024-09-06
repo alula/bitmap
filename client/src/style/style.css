@@ -71,11 +71,14 @@ main {
 	color: currentColor;
 	width: 0.95em;
 	height: 0.95em;
-	border: 0.08em solid var(--surface-2);
-	border-radius: 0.12em;
 
 	display: grid;
 	place-content: center;
+}
+
+.checkbox input:not(.noBorder) {
+    border: 0.08em solid var(--surface-2);
+	border-radius: 0.12em;
 }
 
 .checkbox input.default {

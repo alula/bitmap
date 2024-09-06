@@ -60,30 +60,46 @@ export function getAllPreferences(): { [key: string]: unknown } {
     return JSON.parse(preferences);
 }
 
-export function setPreference( newPreferences: object ): void {
+export function getPreference(key: string): unknown {
+
     const preferences = getAllPreferences();
-    const mergedPreferences = Object.assign({}, preferences, newPreferences)
-    localStorage.setItem(preferencesStorageKey, JSON.stringify(mergedPreferences));
+    const foundItem = preferences[key];
+    if (typeof foundItem === 'undefined') return null;
+    return foundItem;
+}
+
+export function setPreference( key: string, value: unknown, renderImmediate: boolean = true ): void {
+    const preferences = getAllPreferences();
+    preferences[key] = value;
+    localStorage.setItem(preferencesStorageKey, JSON.stringify(preferences));
+    if (renderImmediate) renderApp();
 }
 
 export function setCheckboxStylePreference(preference: string): void {
-    setPreference({checkboxStyle: preference});
-    renderApp();
+    setPreference('checkboxStyle', preference);
 }
 
 export function getCheckboxStylePreference(): string {
-    const style = getAllPreferences().checkboxStyle;
+    const style = getPreference("checkboxStyle");
     if (typeof style !== 'string' || style === '') return "default"
     return style;
 }
 
+export function setTickMarkBorderVisible(hasBorder: boolean): void {
+    setPreference("tickMarkBorderVisible", hasBorder);
+}
+export function getTickMarkBorderVisible(): boolean {
+    const visible = getPreference("tickMarkBorderVisible")
+    if (typeof visible !== 'boolean') return true
+    return visible;
+}
+
 export function setTickMarkVisible(hasTick: boolean): void {
-    setPreference({tickMarkVisible: hasTick})
-    renderApp();
+    setPreference("tickMarkVisible", hasTick);
 }
 
 export function getTickMarkVisible(): boolean {
-    const visible = getAllPreferences().tickMarkVisible;
+    const visible = getPreference("tickMarkVisible")
     if (typeof visible !== 'boolean') return true
     return visible;
 }
