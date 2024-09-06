@@ -114,7 +114,7 @@ class CheckboxStylePreference extends Component<object, CheckboxStylePreferenceS
 
         const preference = (isChecked) ? "reduced" : "default";
         setCheckboxStylePreference( preference );
-        this.setState({ preference });
+        this.setState({ preference: preference });
 	}
 
 	render(_props: object, state: CheckboxStylePreferenceState) {
@@ -154,7 +154,7 @@ class TickMarkVisibility extends Component<object, TickMarkVisibilityState> {
 
         const hasTick = !isChecked;
         setTickMarkVisible( hasTick );
-        this.setState({ hasTick });
+        this.setState({ hasTick: hasTick });
 	}
 
 	render(_props: object, state: TickMarkVisibilityState) {
@@ -173,6 +173,46 @@ class TickMarkVisibility extends Component<object, TickMarkVisibilityState> {
 					))}
 				</input>
 			</div>
+		);
+	}
+}
+
+interface ElementVisibilityTogglerState {
+    isVisible: boolean;
+}
+
+class ElementVisibilityToggler extends Component<object, ElementVisibilityTogglerState> {
+
+    constructor(props: object) {
+		super(props);
+
+		this.state = {
+			isVisible: false,
+		};
+	}
+
+	toggleVisibility(): void {
+    
+        const isToggled = Boolean(this.state?.isVisible);
+        setTickMarkVisible( !isToggled );
+        this.setState({ isVisible: !isToggled });
+	}
+
+	render(_props: object, state: ElementVisibilityTogglerState) {
+		return (
+            <>
+            <div>
+                <div onClick={() => this.toggleVisibility()} style={{ cursor: 'pointer'}} className="flex gap-2 mb-2">
+                    {state.isVisible ? "▼ Hide Preferences" : "▶ Show Preferences"}
+                </div>
+                {state.isVisible && (
+                    <div className="preferencesSection">
+                        {this.props.children}
+                    </div>
+                )}
+            </div>
+            </>
+
 		);
 	}
 }
@@ -221,8 +261,13 @@ class Overlay extends Component<OverlayProps> {
 					<GoToCheckboxForm client={props.client} close={props.close} />
 
 					<ThemePicker />
-                    <CheckboxStylePreference />
-                    <TickMarkVisibility />
+
+                    <ElementVisibilityToggler>
+
+                        <CheckboxStylePreference />
+                        <TickMarkVisibility />
+
+                    </ElementVisibilityToggler>
 
 					<p>
 						A stupid project by <a href="https://github.com/alula">Alula</a>
