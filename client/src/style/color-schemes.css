@@ -40,3 +40,23 @@
 	--code-comment: #7c7f93;
 }
 
+.style-ctp-monochrome {
+	--background: #cdcbcb;
+	--secondary-1: #dbdbdb;
+	--secondary-2: #dce0e8;
+	--surface-0: #ccd0da;
+	--surface-1: #bcc0cc;
+	--surface-2: #acb0be;
+	--text: #292929;
+	--subtext-1: #5c5f77;
+	--subtext-0: #6c6f85;
+	--active: #1a1a1a;
+	--blue: #1e66f5;
+	--red: #d20f39;
+
+	--code-keyword: #8839ef;
+	--code-operator: #04a5e5;
+	--code-class-name: #df8e1d;
+	--code-number: #fe640b;
+	--code-comment: #7c7f93;
+}
