@@ -1,6 +1,6 @@
 import { Component, FormEvent } from "inferno";
 import { BITMAP_SIZE, BitmapClient, CHUNK_COUNT, CHUNK_SIZE } from "../client";
-import { applyTheme, downloadUint8Array, getCurrentTheme, debug, themes, getCheckboxStylePreference, setCheckboxStylePreference, getTickMarkVisible, setTickMarkVisible } from "../utils";
+import * as utils from "../utils";
 import { Spinner } from "./Spinner";
 
 interface GoToCheckboxFormProps {
@@ -69,12 +69,12 @@ class ThemePicker extends Component<object, ThemePickerState> {
 		super(props);
 
 		this.state = {
-			theme: getCurrentTheme(),
+			theme: utils.getCurrentTheme(),
 		};
 	}
 
 	setTheme(theme: string): void {
-		applyTheme(theme);
+		utils.applyTheme(theme);
 		this.setState({ theme });
 	}
 
@@ -88,7 +88,7 @@ class ThemePicker extends Component<object, ThemePickerState> {
 					onChange={(e) => this.setTheme(e.target.value)}
 					$HasNonKeyedChildren
 				>
-					{themes.map((theme) => (
+					{utils.themes.map((theme) => (
 						<option value={theme.id}>{theme.label}</option>
 					))}
 				</select>
@@ -106,14 +106,14 @@ class CheckboxStylePreference extends Component<object, CheckboxStylePreferenceS
 		super(props);
 
 		this.state = {
-			preference: getCheckboxStylePreference(),
+			preference: utils.getCheckboxStylePreference(),
 		};
 	}
 
 	setPreference(isChecked: boolean): void {
 
         const preference = (isChecked) ? "reduced" : "default";
-        setCheckboxStylePreference( preference );
+        utils.setCheckboxStylePreference( preference );
         this.setState({ preference: preference });
 	}
 
@@ -128,7 +128,7 @@ class CheckboxStylePreference extends Component<object, CheckboxStylePreferenceS
                     checked={this.state?.preference === "reduced"}
 					$HasNonKeyedChildren
 				>
-					{themes.map((theme) => (
+					{utils.themes.map((theme) => (
 						<option value={theme.id}>{theme.label}</option>
 					))}
 				</input>
@@ -146,14 +146,14 @@ class TickMarkVisibility extends Component<object, TickMarkVisibilityState> {
 		super(props);
 
 		this.state = {
-			hasTick: getTickMarkVisible(),
+			hasTick: utils.getTickMarkVisible(),
 		};
 	}
 
 	setPreference(isChecked: boolean): void {
 
         const hasTick = !isChecked;
-        setTickMarkVisible( hasTick );
+        utils.setTickMarkVisible( hasTick );
         this.setState({ hasTick: hasTick });
 	}
 
@@ -168,7 +168,47 @@ class TickMarkVisibility extends Component<object, TickMarkVisibilityState> {
                     checked={!this.state?.hasTick}
 					$HasNonKeyedChildren
 				>
-					{themes.map((theme) => (
+					{utils.themes.map((theme) => (
+						<option value={theme.id}>{theme.label}</option>
+					))}
+				</input>
+			</div>
+		);
+	}
+}
+
+interface TickMarkBorderVisibilityState {
+    hasBorder: boolean;
+}
+
+class TickMarkBorderVisibility extends Component<object, TickMarkBorderVisibilityState> {
+    constructor(props: object) {
+		super(props);
+
+		this.state = {
+			hasBorder: utils.getTickMarkBorderVisible(),
+		};
+	}
+
+	setPreference(isChecked: boolean): void {
+
+        const hasBorder = !isChecked;
+        utils.setTickMarkBorderVisible( hasBorder );
+        this.setState({ hasBorder: hasBorder });
+	}
+
+	render(_props: object, state: TickMarkBorderVisibilityState) {
+		return (
+			<div className="flex gap-2 mb-2">
+				<b>Remove checkmark borders:</b>
+				<input
+                    type="checkbox"
+					value={state.hasBorder.toString()}
+					onChange={(e) => this.setPreference( e.target.checked )}
+                    checked={!this.state?.hasBorder}
+					$HasNonKeyedChildren
+				>
+					{utils.themes.map((theme) => (
 						<option value={theme.id}>{theme.label}</option>
 					))}
 				</input>
@@ -194,7 +234,7 @@ class ElementVisibilityToggler extends Component<object, ElementVisibilityToggle
 	toggleVisibility(): void {
     
         const isToggled = Boolean(this.state?.isVisible);
-        setTickMarkVisible( !isToggled );
+        utils.setTickMarkVisible( !isToggled );
         this.setState({ isVisible: !isToggled });
 	}
 
@@ -228,13 +268,13 @@ class Overlay extends Component<OverlayProps> {
 	}
 
 	#toggleDebug(): void {
-		debug.value = !debug.value;
+		utils.debug.value = !utils.debug.value;
 	}
 
 	#downloadPage(): void {
 		const data = this.props.client.getUint8Array();
 		const filename = `state-${this.props.client.chunkIndex}.bin`;
-		downloadUint8Array(data, filename);
+		utils.downloadUint8Array(data, filename);
 	}
 
 	#onDebugChange = () => {
@@ -242,11 +282,11 @@ class Overlay extends Component<OverlayProps> {
 	};
 
 	componentDidMount(): void {
-		debug.subscribe(this.#onDebugChange);
+		utils.debug.subscribe(this.#onDebugChange);
 	}
 
 	componentWillUnmount(): void {
-		debug.unsubscribe(this.#onDebugChange);
+		utils.debug.unsubscribe(this.#onDebugChange);
 	}
 
 	render(props: OverlayProps) {
@@ -266,6 +306,7 @@ class Overlay extends Component<OverlayProps> {
 
                         <CheckboxStylePreference />
                         <TickMarkVisibility />
+                        <TickMarkBorderVisibility />
 
                     </ElementVisibilityToggler>
 
@@ -298,7 +339,7 @@ class Overlay extends Component<OverlayProps> {
 						</span>
 					</p>
 
-					{debug.value && (
+					{utils.debug.value && (
 						<div>
 							you found the hidden debug menu!
 							<button className="btn" onClick={() => this.#downloadPage()}>

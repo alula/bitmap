@@ -1,7 +1,7 @@
 import { elementScroll, observeElementOffset, observeElementRect, Virtualizer } from "@tanstack/virtual-core";
 import { Component, createRef, InfernoNode, RefObject } from "inferno";
 import { BitmapClient, CHUNK_SIZE } from "../client";
-import { getCheckboxStylePreference, getTickMarkVisible } from "../utils";
+import * as utils from "../utils";
 
 const CHECKBOX_SIZE = 30;
 
@@ -15,6 +15,7 @@ interface CheckboxRowProps {
 	client: BitmapClient;
     checkboxStylePreference: string;
     hasTickMark: boolean;
+    hasTickMarkBorders: boolean
 }
 
 class CheckboxRow extends Component<CheckboxRowProps> {
@@ -74,6 +75,7 @@ class CheckboxRow extends Component<CheckboxRowProps> {
         const checkboxStyle= (props.checkboxStylePreference === "reduced") ? "reduced" : "default";
         const isHighlighted = (idx: number) => props.client.highlightedIndex === idx ? "highlighted" : ""
         const tickMarkToggle = (props.hasTickMark) ? "" : "noTick";
+        const tickMarkBorderToggle = (props.hasTickMarkBorders) ? "" : "noBorder"
 
 		return (
 			<div
@@ -91,7 +93,7 @@ class CheckboxRow extends Component<CheckboxRowProps> {
 							<input
 								type="checkbox"
 								className={
-                                    `${checkboxStyle} ${isHighlighted(idx)} ${tickMarkToggle}`
+                                    `${checkboxStyle} ${isHighlighted(idx)} ${tickMarkToggle} ${tickMarkBorderToggle}`
                                 }
 								onChange={() => this.onChange(idx)}
 								ref={this.checkboxRefs[i]}
@@ -254,8 +256,9 @@ export class CheckboxGrid extends Component<CheckboxGridProps, CheckboxGridState
 									{...state}
 									index={virtualItem.index}
 									count={this.getCount(virtualItem.index * state.itemsPerRow)}
-                                    checkboxStylePreference={getCheckboxStylePreference()}
-                                    hasTickMark={getTickMarkVisible()}
+                                    checkboxStylePreference={utils.getCheckboxStylePreference()}
+                                    hasTickMark={utils.getTickMarkVisible()}
+                                    hasTickMarkBorders={utils.getTickMarkBorderVisible()}
 								/>
 							</div>
 						);
