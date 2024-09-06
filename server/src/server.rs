@@ -173,7 +173,8 @@ impl BitmapServer {
         let mut server = Server::new(socket.compat());
 
         if ctx.settings.ws_permessage_deflate {
-            let deflate = Box::new(Deflate::new(soketto::Mode::Server));
+            let mut deflate = Box::new(Deflate::new(soketto::Mode::Server));
+            deflate.set_max_buffer_size(512 * 1024);
             server.add_extension(deflate);
         }
 

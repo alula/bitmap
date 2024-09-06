@@ -716,8 +716,7 @@ dependencies = [
 [[package]]
 name = "soketto"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37468c595637c10857701c990f93a40ce0e357cedb0953d1c26c8d8027f9bb53"
+source = "git+https://github.com/alula/soketto.git?rev=c51864b69445a38dbc700547b0c7185d3211fcf3#c51864b69445a38dbc700547b0c7185d3211fcf3"
 dependencies = [
  "base64",
  "bytes",
