@@ -35,6 +35,7 @@ const preferencesStorageKey = "1bcb__preferences";
 export const themes = [
 	{ id: "ctp-mocha", label: "Catppuccin Dark" },
 	{ id: "ctp-latte", label: "Catppuccin Light" },
+	{ id: "ctp-monochrome", label: "Monochrome (Light)" },
 ];
 
 const defaultTheme = themes[0].id;
