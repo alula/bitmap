@@ -108,6 +108,9 @@ main {
 .checkbox input.noTick:checked::before {
     display: none;
 }
+.checkbox input.noTick:not(:checked)::before {
+    display: none;
+}
 
 .checkbox input:hover.default {
 	background-color: var(--surface-1);
