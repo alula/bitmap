@@ -234,7 +234,6 @@ class ElementVisibilityToggler extends Component<object, ElementVisibilityToggle
 	toggleVisibility(): void {
     
         const isToggled = Boolean(this.state?.isVisible);
-        utils.setTickMarkVisible( !isToggled );
         this.setState({ isVisible: !isToggled });
 	}
 
