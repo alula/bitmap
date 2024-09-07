@@ -301,6 +301,7 @@ main {
 	max-height: 100vh;
 	margin-inline: auto;
 	overflow-y: overlay;
+	scrollbar-color: var(--surface-2) var(--background);
 }
 
 .header {
