@@ -60,3 +60,24 @@
 	--code-number: #fe640b;
 	--code-comment: #7c7f93;
 }
+
+.style-ctp-amoled {
+	--background: #000000;
+	--secondary-1: #0f0f0f;
+	--secondary-2: #000000;
+	--surface-0: #1a1a1a;
+	--surface-1: #262626;
+	--surface-2: #666666;
+	--text: #ffffff;
+	--subtext-1: #d6d6d6;
+	--subtext-0: #808080;
+	--active: #ffffff;
+	--blue: #1e66f5;
+	--red: #d20f39;
+
+	--code-keyword: #8839ef;
+	--code-operator: #04a5e5;
+	--code-class-name: #df8e1d;
+	--code-number: #fe640b;
+	--code-comment: #7c7f93;
+}
